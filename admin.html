@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Support Hub Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e1ef;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --accent: #1f3a5f;
+      --success-bg: #ecfdf5;
+      --success-line: #bbf7d0;
+      --success-text: #166534;
+      --danger-bg: #fff1f2;
+      --danger-line: #fecdd3;
+      --danger-text: #9f1239;
+      --info-bg: #eef4ff;
+      --info-line: #ccdcff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 18px 60px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    h1, h2, h3 { margin-top: 0; }
+
+    p { line-height: 1.55; }
+
+    a {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #cfd7e6;
+      font-size: 15px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--ink);
+      color: white;
+      margin-top: 16px;
+      margin-right: 8px;
+    }
+
+    button.secondary {
+      background: #e9eef7;
+      color: var(--ink);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--info-bg);
+      border: 1px solid var(--info-line);
+      margin: 14px 0;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .status.success {
+      background: var(--success-bg);
+      border-color: var(--success-line);
+      color: var(--success-text);
+    }
+
+    .status.danger {
+      background: var(--danger-bg);
+      border-color: var(--danger-line);
+      color: var(--danger-text);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .hidden { display: none; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #eef2f7;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+
+    .paper-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .paper-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fbfcff;
+    }
+
+    .paper-card h3 {
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    @media (max-width: 760px) {
+      .row, .mini-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Student Support Hub Admin</h1>
+      <p class="muted">
+        Backend upload page for research papers. This page uses Supabase Auth, Storage, and your database policies.
+      </p>
+      <p><a href="./index.html">← Back to website</a></p>
+      <div id="globalStatus" class="status">Loading admin system...</div>
+    </section>
+
+    <section id="loginCard" class="card">
+      <h2>Admin Login</h2>
+      <p class="muted">Use the Supabase Auth account that exists in <strong>admin_profiles</strong>.</p>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="basilmustafa265@yahoo.com" autocomplete="email" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Your Supabase Auth password" autocomplete="current-password" />
+
+      <button id="loginBtn">Log in</button>
+    </section>
+
+    <section id="adminCard" class="card hidden">
+      <h2>Upload Research Paper</h2>
+      <p class="muted" id="adminUserText"></p>
+
+      <div class="row">
+        <div>
+          <label for="paperTitle">Title</label>
+          <input id="paperTitle" type="text" placeholder="Research paper title" />
+        </div>
+        <div>
+          <label for="paperYear">Year</label>
+          <input id="paperYear" type="number" placeholder="2025" />
+        </div>
+      </div>
+
+      <label for="paperAuthors">Author(s)</label>
+      <input id="paperAuthors" type="text" placeholder="Example: Basil Mustafa; Ammar Alalawi" />
+
+      <label for="paperAbstract">Abstract</label>
+      <textarea id="paperAbstract" placeholder="Brief abstract or description"></textarea>
+
+      <div class="row">
+        <div>
+          <label for="paperCategory">Category</label>
+          <select id="paperCategory">
+            <option value="">Loading categories...</option>
+          </select>
+        </div>
+        <div>
+          <label for="paperSource">Source</label>
+          <input id="paperSource" type="text" value="AMRC Research Hub" />
+        </div>
+      </div>
+
+      <div class="mini-grid">
+        <div>
+          <label for="paperType">Type</label>
+          <select id="paperType">
+            <option value="standalone_paper">Standalone Paper</option>
+            <option value="book_paper">Paper inside Book</option>
+          </select>
+        </div>
+        <div>
+          <label for="paperNumber">Paper Number</label>
+          <input id="paperNumber" type="number" placeholder="Optional" />
+        </div>
+        <div>
+          <label for="paperStatus">Status</label>
+          <select id="paperStatus">
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="paperKeywords">Keywords</label>
+      <input id="paperKeywords" type="text" placeholder="Comma separated, e.g. economics, policy, education" />
+
+      <label for="paperPdf">PDF File</label>
+      <input id="paperPdf" type="file" accept="application/pdf" />
+
+      <button id="uploadBtn">Upload and Publish Paper</button>
+      <button class="secondary" id="resetBtn" type="button">Clear Form</button>
+      <button class="secondary" id="logoutBtn" type="button">Log out</button>
+
+      <div id="uploadStatus" class="status hidden"></div>
+    </section>
+
+    <section id="recentCard" class="card hidden">
+      <h2>Recent Backend Papers</h2>
+      <p class="muted">These are coming from Supabase, not the local website files.</p>
+      <button class="secondary" id="refreshRecentBtn" type="button">Refresh List</button>
+      <div id="recentPapers" class="paper-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    let client = null;
+    let currentUser = null;
+
+    function setStatus(message, type = "info") {
+      const box = $("globalStatus");
+      box.textContent = message;
+      box.className = "status";
+      if (type === "success") box.classList.add("success");
+      if (type === "danger") box.classList.add("danger");
+    }
+
+    function setUploadStatus(message, type = "info") {
+      const box = $("uploadStatus");
+      box.textContent = message;
+      box.className = "status";
+      box.classList.remove("hidden");
+      if (type === "success") box.classList.add("success");
+      if (type === "danger") box.classList.add("danger");
+    }
+
+    function slugify(value) {
+      return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/['"]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 90);
+    }
+
+    function splitList(value, separator = ",") {
+      return String(value || "")
+        .split(separator)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function getClient() {
+      if (!window.supabase || !window.SSHUB_SUPABASE) {
+        throw new Error("Supabase is not loaded. Check assets/js/supabase-config.js.");
+      }
+
+      if (!window.SSHUB_SUPABASE.url || !window.SSHUB_SUPABASE.anonKey) {
+        throw new Error("Missing Supabase URL or anon key.");
+      }
+
+      return window.supabase.createClient(
+        window.SSHUB_SUPABASE.url,
+        window.SSHUB_SUPABASE.anonKey
+      );
+    }
+
+    async function verifyAdmin(user) {
+      const { data, error } = await client
+        .from("admin_profiles")
+        .select("id, email, full_name, role, active")
+        .eq("id", user.id)
+        .eq("active", true)
+        .single();
+
+      if (error || !data) {
+        throw new Error("This user is not listed as an active admin in admin_profiles.");
+      }
+
+      return data;
+    }
+
+    async function loadCategories() {
+      const select = $("paperCategory");
+      const { data, error } = await client
+        .from("categories")
+        .select("id, name, slug")
+        .eq("status", "published")
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        select.innerHTML = '<option value="">Could not load categories</option>';
+        throw error;
+      }
+
+      select.innerHTML = '<option value="">No category</option>' + (data || [])
+        .map((category) => `<option value="${category.id}">${category.name}</option>`)
+        .join("");
+    }
+
+    async function loadRecentPapers() {
+      const container = $("recentPapers");
+      container.innerHTML = "<p class='muted'>Loading...</p>";
+
+      const { data, error } = await client
+        .from("papers")
+        .select("slug, title, year, source, pdf_url, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (error) {
+        container.innerHTML = `<div class="status danger">${error.message}</div>`;
+        return;
+      }
+
+      if (!data || !data.length) {
+        container.innerHTML = "<p class='muted'>No backend papers yet.</p>";
+        return;
+      }
+
+      container.innerHTML = data.map((paper) => `
+        <article class="paper-card">
+          <h3>${paper.title || "Untitled paper"}</h3>
+          <div>
+            <span class="pill">${paper.status || "unknown"}</span>
+            <span class="pill">${paper.year || "No year"}</span>
+            <span class="pill">${paper.source || "No source"}</span>
+          </div>
+          <p class="muted">Slug: ${paper.slug}</p>
+          ${paper.pdf_url ? `<p><a href="${paper.pdf_url}" target="_blank" rel="noopener">Open PDF</a></p>` : ""}
+        </article>
+      `).join("");
+    }
+
+    function showLoggedOut() {
+      currentUser = null;
+      $("loginCard").classList.remove("hidden");
+      $("adminCard").classList.add("hidden");
+      $("recentCard").classList.add("hidden");
+      setStatus("Please log in with your approved admin account.");
+    }
+
+    async function showLoggedIn(user) {
+      currentUser = user;
+      const profile = await verifyAdmin(user);
+
+      $("loginCard").classList.add("hidden");
+      $("adminCard").classList.remove("hidden");
+      $("recentCard").classList.remove("hidden");
+      $("adminUserText").textContent = `Logged in as ${profile.full_name || profile.email} (${profile.role}).`;
+      setStatus("Admin verified. You can upload and publish papers.", "success");
+
+      await loadCategories();
+      await loadRecentPapers();
+    }
+
+    async function checkSession() {
+      const { data } = await client.auth.getSession();
+      const session = data && data.session;
+
+      if (!session || !session.user) {
+        showLoggedOut();
+        return;
+      }
+
+      try {
+        await showLoggedIn(session.user);
+      } catch (error) {
+        setStatus(error.message, "danger");
+        await client.auth.signOut();
+        showLoggedOut();
+      }
+    }
+
+    async function login() {
+      const email = $("email").value.trim();
+      const password = $("password").value;
+
+      if (!email || !password) {
+        setStatus("Enter email and password.", "danger");
+        return;
+      }
+
+      $("loginBtn").disabled = true;
+      setStatus("Logging in...");
+
+      try {
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await showLoggedIn(data.user);
+      } catch (error) {
+        setStatus(error.message, "danger");
+      } finally {
+        $("loginBtn").disabled = false;
+      }
+    }
+
+    async function logout() {
+      await client.auth.signOut();
+      showLoggedOut();
+    }
+
+    function resetForm() {
+      $("paperTitle").value = "";
+      $("paperYear").value = "";
+      $("paperAuthors").value = "";
+      $("paperAbstract").value = "";
+      $("paperCategory").value = "";
+      $("paperSource").value = "AMRC Research Hub";
+      $("paperType").value = "standalone_paper";
+      $("paperNumber").value = "";
+      $("paperStatus").value = "published";
+      $("paperKeywords").value = "";
+      $("paperPdf").value = "";
+      $("uploadStatus").classList.add("hidden");
+    }
+
+    async function uploadPaper() {
+      if (!currentUser) {
+        setUploadStatus("You must be logged in.", "danger");
+        return;
+      }
+
+      const title = $("paperTitle").value.trim();
+      const year = $("paperYear").value ? Number($("paperYear").value) : null;
+      const authors = splitList($("paperAuthors").value, ";");
+      const abstract = $("paperAbstract").value.trim();
+      const categoryId = $("paperCategory").value || null;
+      const source = $("paperSource").value.trim() || "AMRC Research Hub";
+      const type = $("paperType").value;
+      const paperNumber = $("paperNumber").value ? Number($("paperNumber").value) : null;
+      const status = $("paperStatus").value;
+      const keywords = splitList($("paperKeywords").value, ",");
+      const file = $("paperPdf").files[0];
+
+      if (!title) {
+        setUploadStatus("Title is required.", "danger");
+        return;
+      }
+
+      if (!file) {
+        setUploadStatus("PDF file is required.", "danger");
+        return;
+      }
+
+      if (file.type !== "application/pdf") {
+        setUploadStatus("Please upload a PDF file.", "danger");
+        return;
+      }
+
+      $("uploadBtn").disabled = true;
+      setUploadStatus("Preparing upload...");
+
+      try {
+        const baseSlug = slugify(title) || "paper";
+        const slug = `${baseSlug}-${Date.now()}`;
+        const storagePath = `${slug}.pdf`;
+
+        setUploadStatus("Uploading PDF to Supabase Storage...");
+        const { error: uploadError } = await client.storage
+          .from("papers")
+          .upload(storagePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: "application/pdf"
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = client.storage
+          .from("papers")
+          .getPublicUrl(storagePath);
+
+        const pdfUrl = publicData.publicUrl;
+
+        setUploadStatus("Saving paper metadata to database...");
+        const { data: insertedPaper, error: insertError } = await client
+          .from("papers")
+          .insert({
+            slug,
+            title,
+            abstract,
+            year,
+            type,
+            source,
+            category_id: categoryId,
+            paper_number: paperNumber,
+            keywords,
+            pdf_url: pdfUrl,
+            status
+          })
+          .select("id, slug, title")
+          .single();
+
+        if (insertError) throw insertError;
+
+        if (authors.length) {
+          for (let index = 0; index < authors.length; index++) {
+            const fullName = authors[index];
+            const authorSlug = slugify(fullName);
+
+            const { data: authorRow, error: authorError } = await client
+              .from("authors")
+              .upsert(
+                { slug: authorSlug, full_name: fullName },
+                { onConflict: "slug" }
+              )
+              .select("id")
+              .single();
+
+            if (authorError) throw authorError;
+
+            const { error: linkError } = await client
+              .from("paper_authors")
+              .upsert({
+                paper_id: insertedPaper.id,
+                author_id: authorRow.id,
+                author_order: index + 1
+              });
+
+            if (linkError) throw linkError;
+          }
+        }
+
+        setUploadStatus(
+          `Published successfully.\n\nTitle: ${insertedPaper.title}\nSlug: ${insertedPaper.slug}\nPDF: ${pdfUrl}`,
+          "success"
+        );
+
+        await loadRecentPapers();
+      } catch (error) {
+        setUploadStatus(error.message || String(error), "danger");
+      } finally {
+        $("uploadBtn").disabled = false;
+      }
+    }
+
+    async function init() {
+      try {
+        client = getClient();
+        $("loginBtn").addEventListener("click", login);
+        $("logoutBtn").addEventListener("click", logout);
+        $("resetBtn").addEventListener("click", resetForm);
+        $("uploadBtn").addEventListener("click", uploadPaper);
+        $("refreshRecentBtn").addEventListener("click", loadRecentPapers);
+        await checkSession();
+      } catch (error) {
+        setStatus(error.message, "danger");
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
