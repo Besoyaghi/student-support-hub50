@@ -101,8 +101,56 @@ function useLocalData(){
   const [chapters,setChapters] = useState(()=>appData('chapters', SEED_CHAPTERS));
   const [clubs,setClubs] = useState(()=>appData('clubs', SEED_CLUBS));
   const [years,setYears] = useState(()=>appData('years', SEED_YEARS));
+  const [backendStatus,setBackendStatus] = useState('Local data loaded');
+
+  useEffect(()=>{
+    let active = true;
+
+    async function loadBackend(){
+      if(!window.SSHUB_BACKEND?.loadPapers){
+        setBackendStatus('Backend bridge not found');
+        return;
+      }
+
+      setBackendStatus('Connecting to Supabase…');
+      const result = await window.SSHUB_BACKEND.loadPapers();
+
+      if(!active) return;
+
+      if(result.ok && result.papers.length){
+        setPapers(current => {
+          const existing = new Set(current.map(p => p.id));
+          const backendOnly = result.papers.filter(p => !existing.has(p.id));
+          return [...backendOnly, ...current];
+        });
+        setBackendStatus(result.message);
+      } else {
+        setBackendStatus(result.message || 'No backend papers found');
+      }
+    }
+
+    loadBackend();
+    return () => { active = false; };
+  }, []);
+
   const save = (key, setter) => value => { setter(value); setAppData(key, value); };
-  return {books,papers,parts,chapters,clubs,years,setBooks:save('books',setBooks),setPapers:save('papers',setPapers),setParts:save('parts',setParts),setChapters:save('chapters',setChapters),setClubs:save('clubs',setClubs),setYears:save('years',setYears)};
+
+  return {
+    books,
+    papers,
+    parts,
+    chapters,
+    clubs,
+    years,
+    backendStatus,
+    setBooks: save('books',setBooks),
+    setPapers: save('papers',setPapers),
+    setParts: save('parts',setParts),
+    setChapters: save('chapters',setChapters),
+    setClubs: save('clubs',setClubs),
+    setYears: save('years',setYears)
+  };
+}
 }
 function useReadingList(){
   const [list,setList] = useState(()=>readJSON(STORAGE.readingList, []));
