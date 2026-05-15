@@ -11,7 +11,7 @@
 
   function mapPaper(row) {
     return {
-      id: row.slug || row.id,
+      id: "backend-" + (row.slug || row.id),
       backendId: row.id,
       backend: true,
       num: row.paper_number || 0,
