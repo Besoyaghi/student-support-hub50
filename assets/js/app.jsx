@@ -151,7 +151,6 @@ function useLocalData(){
     setYears: save('years',setYears)
   };
 }
-}
 function useReadingList(){
   const [list,setList] = useState(()=>readJSON(STORAGE.readingList, []));
   const save = next => { setList(next); writeJSON(STORAGE.readingList, next); };
