@@ -466,7 +466,37 @@ function BookView({id,data}){
       <article className="main-col">
         {url && <div className="reader"><div className="reader-head"><h3>Full publication PDF</h3><div className="tools"><a className="btn ghost small" href={url} target="_blank">Open</a><a className="btn ghost small" href={url} download>Download</a><button className="btn ghost small" onClick={()=>copyText(url)}>Copy link</button></div></div><div className="pdf-frame"><object data={url} type="application/pdf"><iframe src={url}></iframe></object></div></div>}
         <SectionHead kicker="Table of contents" title="Papers inside this publication" subtitle="Use sections to keep the book organized instead of scattering research across unrelated pages." />
-        {chapters.map(ch=>{ const cps=papers.filter(p=>p.partId===ch.partId && p.category===ch.title || p.chapterId===ch.id); const fallback=papers.filter(p=>p.category===ch.title); const rows=(cps.length?cps:fallback); return <section key={ch.id} className="chapter-block"><h3>{String(ch.chapterNumber).padStart(2,'0')} · {ch.title}</h3><div className="paper-rows">{rows.length?rows.map(p=><PaperRow key={p.id} paper={p}/>):<p className="muted">No papers mapped to this section yet.</p>}</div></section>; })}
+        {book.backend ? (
+  <section className="chapter-block">
+    <h3>01 · Uploaded papers</h3>
+    <div className="paper-rows">
+      {papers.length
+        ? papers.map(p => <PaperRow key={p.id} paper={p} />)
+        : <p className="muted">No papers have been linked to this backend book yet.</p>
+      }
+    </div>
+  </section>
+) : (
+  chapters.map(ch => {
+    const cps = papers.filter(p =>
+      (p.partId === ch.partId && p.category === ch.title) || p.chapterId === ch.id
+    );
+    const fallback = papers.filter(p => p.category === ch.title);
+    const rows = cps.length ? cps : fallback;
+
+    return (
+      <section key={ch.id} className="chapter-block">
+        <h3>{String(ch.chapterNumber).padStart(2,'0')} · {ch.title}</h3>
+        <div className="paper-rows">
+          {rows.length
+            ? rows.map(p => <PaperRow key={p.id} paper={p} />)
+            : <p className="muted">No papers mapped to this section yet.</p>
+          }
+        </div>
+      </section>
+    );
+  })
+)}
       </article>
       <aside className="side-col"><div className="panel pad sticky"><h3>Publication details</h3><MetaLine items={[book.publicationYear, book.editors, full?.size ? formatBytes(full.size) : null]} /><p>{book.description}</p><button className="btn primary full" onClick={()=>go('research')}>Search all research</button></div></aside>
     </section>
