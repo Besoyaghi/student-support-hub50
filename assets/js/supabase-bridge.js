@@ -50,7 +50,14 @@
       backend: true,
       num: row.paper_number || 0,
       title: row.title || "Untitled paper",
-      authors: row.authors_text || "Student Support Hub Backend",
+      authors: Array.isArray(row.paper_authors) && row.paper_authors.length
+  ? row.paper_authors
+      .slice()
+      .sort((a,b)=>(a.author_order || 0) - (b.author_order || 0))
+      .map(pa => pa.authors?.full_name)
+      .filter(Boolean)
+      .join(", ")
+  : "Student Support Hub Backend",
       abstract: row.abstract || "",
       year: row.year || "",
       category: row.categories && row.categories.name ? row.categories.name : "Backend Library",
@@ -99,8 +106,8 @@
     const { data, error } = await client
       .from("papers")
       .select(
-        "id, slug, title, abstract, year, type, source, book_id, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status, books(slug,title), categories(name)"
-      )
+  "id, slug, title, abstract, year, type, source, book_id, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status, books(slug,title), categories(name), paper_authors(author_order, authors(full_name))"
+)
       .eq("status", "published")
       .order("created_at", { ascending: false })
       .limit(100);
