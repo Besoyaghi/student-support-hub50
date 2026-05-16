@@ -193,29 +193,7 @@ function useLocalData(){
   };
 }
 
-    loadBackend();
-    return () => { active = false; };
-  }, []);
-
-  const save = (key, setter) => value => { setter(value); setAppData(key, value); };
-
-  return {
-    books,
-    papers,
-    parts,
-    chapters,
-    clubs,
-    years,
-    backendStatus,
-    setBooks: save('books',setBooks),
-    setPapers: save('papers',setPapers),
-    setParts: save('parts',setParts),
-    setChapters: save('chapters',setChapters),
-    setClubs: save('clubs',setClubs),
-    setYears: save('years',setYears)
-  };
-}
-function useReadingList(){
+   function useReadingList(){
   const [list,setList] = useState(()=>readJSON(STORAGE.readingList, []));
   const save = next => { setList(next); writeJSON(STORAGE.readingList, next); };
   const has = id => list.includes(id);
