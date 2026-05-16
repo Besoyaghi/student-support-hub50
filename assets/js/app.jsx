@@ -229,7 +229,10 @@ function TopBar({route, auth, onLogin, onLogout}){
       <span><b>Student Support Hub</b><small>AMRC Academic Library</small></span>
     </button>
     <nav className="nav">
-      {nav.map(([id,label])=><button key={id} className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book'))?'active':''} onClick={()=>go(id)}>{label}</button>)}
+      {nav.map(([id,label])=>
+  id === 'admin'
+    ? <button key={id} onClick={()=>{ window.open('./admin.html', '_blank'); }}>{label}</button>
+    : <button key={id} className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book'))?'active':''} onClick={()=>go(id)}>{label}</button>
     </nav>
     <div className="nav-actions">
       {auth ? <button className="btn ghost small" onClick={onLogout}>Sign out</button> : <button className="btn ghost small" onClick={onLogin}>Admin sign in</button>}
