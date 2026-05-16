@@ -220,25 +220,48 @@ function usePdfObject(path){
 
 function TopBar({route, auth, onLogin, onLogout}){
   const nav = [
-    ['home','Home'],['research','Research Hub'],['publications','Publications'],['collaborations','Collaborations'],['assistant','AI Assistant'],['ap-resources','Advanced Placement Resources'],['ap-decider','AP Decider'],['reading-list','Reading List'],['admin','Admin']
+    ['home','Home'],
+    ['research','Research Hub'],
+    ['publications','Publications'],
+    ['collaborations','Collaborations'],
+    ['assistant','AI Assistant'],
+    ['ap-resources','Advanced Placement Resources'],
+    ['ap-decider','AP Decider'],
+    ['reading-list','Reading List'],
+    ['admin','Admin']
   ];
+
   const active = route.page;
+
   return <header className="topbar">
     <button className="brand" onClick={()=>go('home')} aria-label="Go home">
       <span className="brand-mark">A</span>
       <span><b>Student Support Hub</b><small>AMRC Academic Library</small></span>
     </button>
+
     <nav className="nav">
-      {nav.map(([id,label])=>
-  id === 'admin'
-    ? <button key={id} onClick={()=>{ window.open('./admin.html', '_blank'); }}>{label}</button>
-    : <button key={id} className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book'))?'active':''} onClick={()=>go(id)}>{label}</button>
+      {nav.map(([id,label]) =>
+        id === 'admin'
+          ? <button key={id} onClick={()=>{ window.open('./admin.html', '_blank'); }}>{label}</button>
+          : <button
+              key={id}
+              className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book')) ? 'active' : ''}
+              onClick={()=>go(id)}
+            >
+              {label}
+            </button>
+      )}
     </nav>
+
     <div className="nav-actions">
-      {auth ? <button className="btn ghost small" onClick={onLogout}>Sign out</button> : <button className="btn ghost small" onClick={onLogin}>Admin sign in</button>}
+      {auth
+        ? <button className="btn ghost small" onClick={onLogout}>Sign out</button>
+        : <button className="btn ghost small" onClick={onLogin}>Admin sign in</button>
+      }
     </div>
   </header>;
 }
+
 function Badge({children, tone=''}){ return <span className={`badge ${tone}`}>{children}</span>; }
 function PageHeader({eyebrow,title,subtitle,children}){ return <section className="page-hero"><div className="container page-hero-inner"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{subtitle && <p className="lead">{subtitle}</p>}</div>{children}</div></section>; }
 function Stat({num,label}){ return <div className="stat"><b>{num}</b><span>{label}</span></div>; }
