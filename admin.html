@@ -136,6 +136,13 @@
       cursor: not-allowed;
     }
 
+    button.mini {
+      padding: 8px 11px;
+      font-size: 12px;
+      margin-top: 10px;
+      margin-right: 6px;
+    }
+
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -250,7 +257,7 @@
         <div class="tabs">
           <button class="tab active" data-tab="paperPanel">Upload Paper</button>
           <button class="tab" data-tab="bookPanel">Upload Book</button>
-          <button class="tab" data-tab="recentPanel">Recent Content</button>
+          <button class="tab" data-tab="recentPanel">Manage Content</button>
         </div>
         <button class="secondary" id="refreshBtn" type="button">Refresh backend data</button>
         <button class="secondary" id="logoutBtn" type="button">Log out</button>
@@ -368,8 +375,9 @@
       </section>
 
       <section id="recentPanel" class="card panel hidden">
-        <h2>Recent Backend Content</h2>
-        <p class="muted">These items are stored in Supabase, not in the local website ZIP.</p>
+        <h2>Manage Backend Content</h2>
+        <p class="muted">Unpublish hides an item from the main site. Delete removes the database record. Use delete carefully.</p>
+        <div class="notice"><strong>Safety:</strong> deleting a book does not delete linked papers. Unpublish first when you are unsure.</div>
 
         <h3>Books</h3>
         <div id="recentBooks" class="list"></div>
@@ -511,12 +519,12 @@
         .from("papers")
         .select("id, slug, title, year, source, status, pdf_url, book_id, created_at, books(title)")
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (paperError) throw paperError;
 
       $("recentBooks").innerHTML = cachedBooks.length
-        ? cachedBooks.slice(0, 10).map((book) => `
+        ? cachedBooks.slice(0, 20).map((book) => `
           <article class="item">
             <h3>${escapeHtml(book.title)}</h3>
             <div>
@@ -526,6 +534,12 @@
             </div>
             <p class="muted">Slug: ${escapeHtml(book.slug)}</p>
             ${book.pdf_url ? `<p><a href="${book.pdf_url}" target="_blank" rel="noopener">Open PDF</a></p>` : ""}
+            <button class="mini secondary" type="button" onclick="setBookStatus('${book.id}', '${book.status === "published" ? "draft" : "published"}')">
+              ${book.status === "published" ? "Unpublish" : "Publish"}
+            </button>
+            <button class="mini danger" type="button" onclick="deleteBook('${book.id}', '${escapeHtml(book.title).replaceAll("'", "\\'")}')">
+              Delete
+            </button>
           </article>
         `).join("")
         : "<p class='muted'>No backend books yet.</p>";
@@ -542,6 +556,12 @@
             </div>
             <p class="muted">Slug: ${escapeHtml(paper.slug)}</p>
             ${paper.pdf_url ? `<p><a href="${paper.pdf_url}" target="_blank" rel="noopener">Open PDF</a></p>` : ""}
+            <button class="mini secondary" type="button" onclick="setPaperStatus('${paper.id}', '${paper.status === "published" ? "draft" : "published"}')">
+              ${paper.status === "published" ? "Unpublish" : "Publish"}
+            </button>
+            <button class="mini danger" type="button" onclick="deletePaper('${paper.id}', '${escapeHtml(paper.title).replaceAll("'", "\\'")}')">
+              Delete
+            </button>
           </article>
         `).join("")
         : "<p class='muted'>No backend papers yet.</p>";
@@ -811,6 +831,115 @@
         $("uploadPaperBtn").disabled = false;
       }
     }
+
+
+    async function setPaperStatus(id, status) {
+      try {
+        setStatus(`Updating paper status to ${status}...`);
+        const { error } = await client
+          .from("papers")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("id", id);
+
+        if (error) throw error;
+
+        setStatus(`Paper status updated to ${status}.`, "success");
+        await refreshAll();
+      } catch (error) {
+        setStatus(error.message || String(error), "danger");
+      }
+    }
+
+    async function setBookStatus(id, status) {
+      try {
+        setStatus(`Updating book status to ${status}...`);
+        const { error } = await client
+          .from("books")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("id", id);
+
+        if (error) throw error;
+
+        setStatus(`Book status updated to ${status}.`, "success");
+        await refreshAll();
+      } catch (error) {
+        setStatus(error.message || String(error), "danger");
+      }
+    }
+
+    async function deletePaper(id, title) {
+      const ok = confirm(`Delete this paper?\n\n${title}\n\nThis removes the database record. This action cannot be undone.`);
+      if (!ok) return;
+
+      try {
+        setStatus("Deleting paper...");
+        await client.from("paper_authors").delete().eq("paper_id", id);
+
+        const { error } = await client
+          .from("papers")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        setStatus("Paper deleted.", "success");
+        await refreshAll();
+      } catch (error) {
+        setStatus(error.message || String(error), "danger");
+      }
+    }
+
+    async function deleteBook(id, title) {
+      const ok = confirm(`Delete this book?\n\n${title}\n\nLinked papers will stay in Supabase but may become standalone/unlinked. Unpublish is safer.`);
+      if (!ok) return;
+
+      try {
+        setStatus("Checking linked papers...");
+
+        const { data: linkedPapers, error: countError } = await client
+          .from("papers")
+          .select("id, title")
+          .eq("book_id", id)
+          .limit(5);
+
+        if (countError) throw countError;
+
+        if (linkedPapers && linkedPapers.length) {
+          const unlinkOk = confirm(
+            `This book has linked papers. Continue?\n\nThe papers will be unlinked first, then the book will be deleted.`
+          );
+          if (!unlinkOk) {
+            setStatus("Delete cancelled.");
+            return;
+          }
+
+          const { error: unlinkError } = await client
+            .from("papers")
+            .update({ book_id: null, type: "standalone_paper", updated_at: new Date().toISOString() })
+            .eq("book_id", id);
+
+          if (unlinkError) throw unlinkError;
+        }
+
+        setStatus("Deleting book...");
+        const { error } = await client
+          .from("books")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        setStatus("Book deleted.", "success");
+        await refreshAll();
+      } catch (error) {
+        setStatus(error.message || String(error), "danger");
+      }
+    }
+
+    window.setPaperStatus = setPaperStatus;
+    window.setBookStatus = setBookStatus;
+    window.deletePaper = deletePaper;
+    window.deleteBook = deleteBook;
 
     async function init() {
       try {
