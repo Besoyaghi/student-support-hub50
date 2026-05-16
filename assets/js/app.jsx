@@ -107,28 +107,91 @@ function useLocalData(){
     let active = true;
 
     async function loadBackend(){
-      if(!window.SSHUB_BACKEND?.loadPapers){
+      if(!window.SSHUB_BACKEND){
         setBackendStatus('Backend bridge not found');
         return;
       }
 
       setBackendStatus('Connecting to Supabase…');
-      const result = await window.SSHUB_BACKEND.loadPapers();
+
+      const bookResult = window.SSHUB_BACKEND.loadBooks
+        ? await window.SSHUB_BACKEND.loadBooks()
+        : { ok:false, books:[], message:'Book loader not found' };
+
+      const paperResult = window.SSHUB_BACKEND.loadPapers
+        ? await window.SSHUB_BACKEND.loadPapers()
+        : { ok:false, papers:[], message:'Paper loader not found' };
 
       if(!active) return;
 
-      if(result.ok && result.papers.length){
-        setPapers(current => {
-          const existing = new Set(current.map(p => p.id));
-          const backendOnly = result.papers.filter(p => !existing.has(p.id));
+      if(bookResult.ok && bookResult.books.length){
+        setBooks(current => {
+          const existing = new Set(current.map(b => b.id));
+          const backendOnly = bookResult.books.filter(b => !existing.has(b.id));
           return [...backendOnly, ...current];
         });
-        setBackendStatus(result.message);
-      } else {
-        setBackendStatus(result.message || 'No backend papers found');
+
+        const newParts = bookResult.books.map(book => ({
+          id: 'part_' + book.id,
+          title: 'Full Book',
+          partNumber: 1,
+          bookId: book.id
+        }));
+
+        const newChapters = bookResult.books.map(book => ({
+          id: 'ch_' + book.id,
+          title: 'Uploaded Publication',
+          chapterNumber: 1,
+          bookId: book.id,
+          partId: 'part_' + book.id
+        }));
+
+        setParts(current => {
+          const existing = new Set(current.map(p => p.id));
+          return [...newParts.filter(p => !existing.has(p.id)), ...current];
+        });
+
+        setChapters(current => {
+          const existing = new Set(current.map(c => c.id));
+          return [...newChapters.filter(c => !existing.has(c.id)), ...current];
+        });
       }
+
+      if(paperResult.ok && paperResult.papers.length){
+        setPapers(current => {
+          const existing = new Set(current.map(p => p.id));
+          const backendOnly = paperResult.papers.filter(p => !existing.has(p.id));
+          return [...backendOnly, ...current];
+        });
+      }
+
+      setBackendStatus(
+        `${bookResult.message || ''} ${paperResult.message || ''}`.trim()
+      );
     }
 
+    loadBackend();
+    return () => { active = false; };
+  }, []);
+
+  const save = (key, setter) => value => { setter(value); setAppData(key, value); };
+
+  return {
+    books,
+    papers,
+    parts,
+    chapters,
+    clubs,
+    years,
+    backendStatus,
+    setBooks: save('books',setBooks),
+    setPapers: save('papers',setPapers),
+    setParts: save('parts',setParts),
+    setChapters: save('chapters',setChapters),
+    setClubs: save('clubs',setClubs),
+    setYears: save('years',setYears)
+  };
+}
     loadBackend();
     return () => { active = false; };
   }, []);

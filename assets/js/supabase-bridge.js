@@ -9,7 +9,41 @@
     return window.supabase.createClient(config.url, config.anonKey);
   }
 
+  function academicYearId(year) {
+    if (Number(year) === 2024) return "ay_2024";
+    if (Number(year) === 2025) return "ay_2025";
+    if (Number(year) === 2026) return "ay_2026";
+    return "ay_2025";
+  }
+
+  function mapBook(row) {
+    const baseId = row.slug || row.id;
+
+    return {
+      id: "backend-book-" + baseId,
+      backendId: row.id,
+      backend: true,
+      title: row.title || "Untitled book",
+      description: row.description || row.subtitle || "",
+      publicationYear: row.year || new Date().getFullYear(),
+      editors: row.source || "Student Support Hub Backend",
+      clubId: "club_amg",
+      academicYearId: academicYearId(row.year),
+      pdf: row.pdf_url || "",
+      pages: 0,
+      papers: 0,
+      size: 0
+    };
+  }
+
   function mapPaper(row) {
+    const bookSlug = row.books && row.books.slug ? row.books.slug : null;
+    const backendBookId = bookSlug
+      ? "backend-book-" + bookSlug
+      : row.book_id
+        ? "backend-book-" + row.book_id
+        : "";
+
     return {
       id: "backend-" + (row.slug || row.id),
       backendId: row.id,
@@ -19,14 +53,40 @@
       authors: row.authors_text || "Student Support Hub Backend",
       abstract: row.abstract || "",
       year: row.year || "",
-      category: row.category_name || "Backend Library",
+      category: row.categories && row.categories.name ? row.categories.name : "Backend Library",
       club: row.source || "Supabase",
       source: row.source || "Supabase",
       keywords: row.keywords || [],
       pdf: row.pdf_url || "",
+      bookId: backendBookId,
       citation_apa: row.citation_apa || "",
       citation_mla: row.citation_mla || "",
       citation_chicago: row.citation_chicago || ""
+    };
+  }
+
+  async function loadBooks() {
+    const client = getClient();
+    if (!client) {
+      return { ok: false, books: [], message: "Supabase is not configured." };
+    }
+
+    const { data, error } = await client
+      .from("books")
+      .select("id, slug, title, subtitle, description, year, source, pdf_url, status")
+      .eq("status", "published")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn("Student Support Hub Supabase books load failed:", error.message);
+      return { ok: false, books: [], message: error.message };
+    }
+
+    return {
+      ok: true,
+      books: (data || []).map(mapBook),
+      message: `Loaded ${(data || []).length} backend book(s).`
     };
   }
 
@@ -39,14 +99,14 @@
     const { data, error } = await client
       .from("papers")
       .select(
-        "id, slug, title, abstract, year, type, source, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status"
+        "id, slug, title, abstract, year, type, source, book_id, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status, books(slug,title), categories(name)"
       )
       .eq("status", "published")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) {
-      console.warn("Student Support Hub Supabase load failed:", error.message);
+      console.warn("Student Support Hub Supabase papers load failed:", error.message);
       return { ok: false, papers: [], message: error.message };
     }
 
@@ -58,6 +118,7 @@
   }
 
   window.SSHUB_BACKEND = {
+    loadBooks,
     loadPapers
   };
 })();
