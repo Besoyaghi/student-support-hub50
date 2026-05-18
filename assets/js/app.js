@@ -1,5 +1,5 @@
 const { useEffect, useMemo, useState } = React;
-const ROUTES = ['home', 'research', 'publications', 'subjects', 'collaborations', 'assistant', 'ap-resources', 'ap-decider', 'reading-list', 'book', 'paper'];
+const ROUTES = ['home', 'research', 'publications', 'subjects', 'collaborations', 'alumni', 'assistant', 'ap-resources', 'ap-decider', 'reading-list', 'book', 'paper'];
 const STORAGE = {
     readingList: 'ssh_reading_list_v3',
     auth: 'ssh_admin_auth_v3',
@@ -35,6 +35,12 @@ function partnerData(key, fallback) { var _a; try {
 }
 catch (_b) {
     return fallback;
+} }
+function alumniSource() { try {
+    return window.SSH_ALUMNI_DATA || { regions: [] };
+}
+catch (_a) {
+    return { regions: [] };
 } }
 function uniq(arr) { return [...new Set(arr.filter(Boolean))]; }
 function short(text, len = 160) { if (!text)
@@ -284,6 +290,7 @@ function TopBar({ route, auth, onLogin, onLogout }) {
         ['research', 'Research Hub'],
         ['publications', 'Publications'],
         ['collaborations', 'Collaborations'],
+        ['alumni', 'Alumni Map'],
         ['assistant', 'AI Assistant'],
         ['ap-resources', 'Advanced Placement Resources'],
         ['ap-decider', 'AP Decider'],
@@ -353,6 +360,7 @@ function Home({ data }) {
                 React.createElement(FeatureCard, { title: "Advanced Placement Resources", desc: "AP course library by subject area, course fit cards, and a new comparison workspace.", action: "Browse APs", page: "ap-resources" }),
                 React.createElement(FeatureCard, { title: "AP Decider", desc: "A multi-factor algorithm that recommends APs and builds a four-year roadmap based on student profile.", action: "Build roadmap", page: "ap-decider" }),
                 React.createElement(FeatureCard, { title: "Reading List", desc: "Students can save research papers locally, continue later, and export their list.", action: "View saved papers", page: "reading-list" }),
+                React.createElement(FeatureCard, { title: "Alumni Destinations", desc: "A map-style view showing where AMSI students continued their studies by region and university destination.", action: "Open map", page: "alumni" }),
                 React.createElement(FeatureCard, { title: "Knowledge Assistant", desc: "A controlled helper for research discovery, AP planning, partner resources, and opportunities using only site data.", action: "Ask assistant", page: "assistant" }))),
         React.createElement("section", { className: "container section two-col" },
             React.createElement("div", null,
@@ -981,6 +989,93 @@ function Collaborations() {
                 React.createElement(MetaLine, { items: [o.type, o.audience, o.timeline] }),
                 o.url && React.createElement("a", { className: "link-btn", href: o.url, target: "_blank", rel: "noopener noreferrer" }, "Open opportunity \u2192"))))));
 }
+const ALUMNI_REGION_DEFAULTS = [
+    { id: 'uae-middle-east', label: 'UAE & MENA', short: 'ME', countries: ['United Arab Emirates'], top: '56%', left: '58%' },
+    { id: 'united-kingdom', label: 'United Kingdom', short: 'UK', countries: ['United Kingdom'], top: '35%', left: '47%' },
+    { id: 'europe', label: 'Europe', short: 'EU', countries: ['Europe'], top: '39%', left: '51%' },
+    { id: 'united-states', label: 'United States', short: 'US', countries: ['United States'], top: '43%', left: '22%' },
+    { id: 'canada', label: 'Canada', short: 'CA', countries: ['Canada'], top: '30%', left: '22%' },
+    { id: 'asia', label: 'Asia', short: 'AS', countries: ['Asia'], top: '47%', left: '72%' },
+    { id: 'australia', label: 'Australia & New Zealand', short: 'ANZ', countries: ['Australia', 'New Zealand'], top: '72%', left: '79%' },
+    { id: 'other', label: 'Africa', short: 'AF', countries: ['Other'], top: '64%', left: '45%' }
+];
+function getAlumniRegions() {
+    const data = alumniSource();
+    const supplied = Array.isArray(data.regions) ? data.regions : [];
+    return ALUMNI_REGION_DEFAULTS.map(base => {
+        var _a, _b;
+        const match = supplied.find(r => r.id === base.id || normalize(r.label) === normalize(base.label));
+        return Object.assign(Object.assign(Object.assign({}, base), (match || {})), { top: (match === null || match === void 0 ? void 0 : match.top) || ((_a = match === null || match === void 0 ? void 0 : match.map) === null || _a === void 0 ? void 0 : _a.top) || base.top, left: (match === null || match === void 0 ? void 0 : match.left) || ((_b = match === null || match === void 0 ? void 0 : match.map) === null || _b === void 0 ? void 0 : _b.left) || base.left, universities: Array.isArray(match === null || match === void 0 ? void 0 : match.universities) ? match.universities : [] });
+    });
+}
+function alumniRegionCount(region) {
+    return (region.universities || []).reduce((sum, u) => sum + (Number(u.alumni) || 0), 0);
+}
+function alumniRegionMetric(region, useUniversityCounts) {
+    return useUniversityCounts ? (region.universities || []).length : alumniRegionCount(region);
+}
+function AlumniDestinations() {
+    var _a;
+    const alumniData = alumniSource();
+    const usesUniversityCounts = alumniData.countMode === 'universities' || alumniData.exactAlumniCounts === false;
+    const regions = useMemo(() => getAlumniRegions(), []);
+    const [active, setActive] = useState('all');
+    const activeRegions = active === 'all' ? regions : regions.filter(r => r.id === active);
+    const universities = activeRegions.flatMap(region => (region.universities || []).map(u => (Object.assign(Object.assign({}, u), { regionLabel: region.label }))));
+    const totalMetric = regions.reduce((sum, r) => sum + alumniRegionMetric(r, usesUniversityCounts), 0);
+    const totalUniversities = regions.reduce((sum, r) => sum + (r.universities || []).length, 0);
+    const countries = uniq(regions.flatMap(r => (r.universities || []).map(u => { var _a; return u.country || ((_a = r.countries) === null || _a === void 0 ? void 0 : _a[0]); })));
+    const activeMetric = activeRegions.reduce((sum, r) => sum + alumniRegionMetric(r, usesUniversityCounts), 0);
+    const activeCountryCount = uniq(universities.map(u => u.country).filter(Boolean)).length;
+    const sortedUniversities = universities.slice().sort((a, b) => String(a.country || '').localeCompare(String(b.country || '')) || String(a.name || '').localeCompare(String(b.name || '')));
+    const activeLabel = active === 'all' ? 'All destinations' : (((_a = regions.find(r => r.id === active)) === null || _a === void 0 ? void 0 : _a.label) || 'Selected region');
+    const metricLabel = usesUniversityCounts ? 'University destinations' : 'Alumni records';
+    const shortMetricLabel = usesUniversityCounts ? 'Destinations' : 'Alumni';
+    return React.createElement("main", null,
+        React.createElement(PageHeader, { eyebrow: "Alumni destinations", title: "Where AMSI alumni go next", subtitle: "A map-style view built from the AMSI Alumni Around the World university list." },
+            React.createElement("div", { className: "hero-stats" },
+                React.createElement(Stat, { num: totalMetric, label: metricLabel }),
+                React.createElement(Stat, { num: totalUniversities, label: "Universities" }),
+                React.createElement(Stat, { num: countries.length, label: "Countries" }))),
+        React.createElement("section", { className: "container section alumni-layout" },
+            React.createElement("article", { className: "panel pad alumni-map-card" },
+                React.createElement(SectionHead, { kicker: "Interactive map", title: "Choose a region", subtitle: "Press a map marker or region button to show the verified university destinations for that region." }),
+                alumniData.note && React.createElement("div", { className: "notice info" },
+                    React.createElement("b", null, "Verified university destinations"),
+                    React.createElement("span", null, alumniData.note)),
+                React.createElement("div", { className: "alumni-map", "aria-label": "Stylized alumni destination map" },
+                    React.createElement("div", { className: "map-land land-americas" }),
+                    React.createElement("div", { className: "map-land land-europe" }),
+                    React.createElement("div", { className: "map-land land-africa" }),
+                    React.createElement("div", { className: "map-land land-asia" }),
+                    React.createElement("div", { className: "map-land land-australia" }),
+                    regions.map(region => React.createElement("button", { key: region.id, className: `map-pin ${active === region.id ? 'active' : ''}`, style: { top: region.top, left: region.left }, onClick: () => setActive(region.id), title: `${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}` },
+                        React.createElement("span", null, region.short),
+                        React.createElement("b", null, alumniRegionMetric(region, usesUniversityCounts))))),
+                React.createElement("div", { className: "alumni-region-buttons" },
+                    React.createElement("button", { className: active === 'all' ? 'active' : '', onClick: () => setActive('all') },
+                        "All destinations ",
+                        React.createElement("b", null, totalMetric)),
+                    regions.map(region => React.createElement("button", { key: region.id, className: active === region.id ? 'active' : '', onClick: () => setActive(region.id) },
+                        region.label,
+                        React.createElement("b", null, alumniRegionMetric(region, usesUniversityCounts)))))),
+            React.createElement("aside", { className: "panel pad alumni-details-card" },
+                React.createElement("p", { className: "kicker" }, "Selected view"),
+                React.createElement("h2", null, activeLabel),
+                React.createElement("div", { className: "alumni-mini-stats" },
+                    React.createElement(Stat, { num: activeMetric, label: shortMetricLabel }),
+                    React.createElement(Stat, { num: sortedUniversities.length, label: "Universities" }),
+                    React.createElement(Stat, { num: activeCountryCount, label: "Countries" })),
+                alumniData.source && React.createElement("p", { className: "alumni-source-note" },
+                    "Source: ",
+                    alumniData.source),
+                React.createElement("div", { className: "alumni-university-list" }, sortedUniversities.length ? sortedUniversities.map((u, i) => React.createElement("article", { className: "alumni-university", key: `${u.name}-${i}` },
+                    React.createElement("div", null,
+                        React.createElement("b", null, u.name),
+                        React.createElement("span", null, [u.city, u.country].filter(Boolean).join(', ') || u.regionLabel),
+                        u.notes && React.createElement("small", null, u.notes)),
+                    usesUniversityCounts ? React.createElement("strong", { className: "destination-dot" }, "\u2713") : React.createElement("strong", null, Number(u.alumni) || 0))) : React.createElement(Empty, { title: "No universities in this view yet.", text: "Once real alumni data is added, this panel will show the university names and alumni numbers for the selected region." })))));
+}
 function APResources() {
     const [area, setArea] = useState('All');
     const [compare, setCompare] = useState(['AP Biology', 'AP Chemistry', 'AP Statistics']);
@@ -1282,6 +1377,8 @@ function App() {
         page = React.createElement(Subjects, { data: data });
     if (route.page === 'collaborations')
         page = React.createElement(Collaborations, null);
+    if (route.page === 'alumni')
+        page = React.createElement(AlumniDestinations, null);
     if (route.page === 'assistant')
         page = React.createElement(KnowledgeAssistant, { data: data, reading: reading });
     if (route.page === 'book')

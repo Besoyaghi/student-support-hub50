@@ -1,6 +1,6 @@
 const { useEffect, useMemo, useState } = React;
 
-const ROUTES = ['home','research','publications','subjects','collaborations','assistant','ap-resources','ap-decider','reading-list','book','paper'];
+const ROUTES = ['home','research','publications','subjects','collaborations','alumni','assistant','ap-resources','ap-decider','reading-list','book','paper'];
 const STORAGE = {
   readingList: 'ssh_reading_list_v3',
   auth: 'ssh_admin_auth_v3',
@@ -18,6 +18,7 @@ function writeJSON(key, value){ localStorage.setItem(key, JSON.stringify(value))
 function appData(key, fallback){ try { return DB?.get(key, fallback) ?? fallback; } catch { return fallback; } }
 function setAppData(key, value){ try { DB?.set(key, value); } catch { localStorage.setItem(key, JSON.stringify(value)); } }
 function partnerData(key, fallback){ try { return window.SSH_PARTNER_DATA?.[key] || fallback; } catch { return fallback; } }
+function alumniSource(){ try { return window.SSH_ALUMNI_DATA || {regions:[]}; } catch { return {regions:[]}; } }
 function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
 function short(text, len=160){ if(!text) return ''; return text.length > len ? text.slice(0, len).trim() + '…' : text; }
 function toText(value){ return Array.isArray(value) ? value.join(', ') : (value || ''); }
@@ -265,6 +266,7 @@ function TopBar({route, auth, onLogin, onLogout}){
     ['research','Research Hub'],
     ['publications','Publications'],
     ['collaborations','Collaborations'],
+    ['alumni','Alumni Map'],
     ['assistant','AI Assistant'],
     ['ap-resources','Advanced Placement Resources'],
     ['ap-decider','AP Decider'],
@@ -339,6 +341,7 @@ function Home({data}){
         <FeatureCard title="Advanced Placement Resources" desc="AP course library by subject area, course fit cards, and a new comparison workspace." action="Browse APs" page="ap-resources" />
         <FeatureCard title="AP Decider" desc="A multi-factor algorithm that recommends APs and builds a four-year roadmap based on student profile." action="Build roadmap" page="ap-decider" />
         <FeatureCard title="Reading List" desc="Students can save research papers locally, continue later, and export their list." action="View saved papers" page="reading-list" />
+        <FeatureCard title="Alumni Destinations" desc="A map-style view showing where AMSI students continued their studies by region and university destination." action="Open map" page="alumni" />
         <FeatureCard title="Knowledge Assistant" desc="A controlled helper for research discovery, AP planning, partner resources, and opportunities using only site data." action="Ask assistant" page="assistant" />
       </div>
     </section>
@@ -791,6 +794,104 @@ function Collaborations(){
   </main>;
 }
 
+
+const ALUMNI_REGION_DEFAULTS = [
+  {id:'uae-middle-east', label:'UAE & MENA', short:'ME', countries:['United Arab Emirates'], top:'56%', left:'58%'},
+  {id:'united-kingdom', label:'United Kingdom', short:'UK', countries:['United Kingdom'], top:'35%', left:'47%'},
+  {id:'europe', label:'Europe', short:'EU', countries:['Europe'], top:'39%', left:'51%'},
+  {id:'united-states', label:'United States', short:'US', countries:['United States'], top:'43%', left:'22%'},
+  {id:'canada', label:'Canada', short:'CA', countries:['Canada'], top:'30%', left:'22%'},
+  {id:'asia', label:'Asia', short:'AS', countries:['Asia'], top:'47%', left:'72%'},
+  {id:'australia', label:'Australia & New Zealand', short:'ANZ', countries:['Australia','New Zealand'], top:'72%', left:'79%'},
+  {id:'other', label:'Africa', short:'AF', countries:['Other'], top:'64%', left:'45%'}
+];
+
+function getAlumniRegions(){
+  const data = alumniSource();
+  const supplied = Array.isArray(data.regions) ? data.regions : [];
+  return ALUMNI_REGION_DEFAULTS.map(base => {
+    const match = supplied.find(r => r.id === base.id || normalize(r.label) === normalize(base.label));
+    return {
+      ...base,
+      ...(match || {}),
+      top: match?.top || match?.map?.top || base.top,
+      left: match?.left || match?.map?.left || base.left,
+      universities: Array.isArray(match?.universities) ? match.universities : []
+    };
+  });
+}
+function alumniRegionCount(region){
+  return (region.universities || []).reduce((sum,u)=>sum + (Number(u.alumni) || 0), 0);
+}
+function alumniRegionMetric(region, useUniversityCounts){
+  return useUniversityCounts ? (region.universities || []).length : alumniRegionCount(region);
+}
+function AlumniDestinations(){
+  const alumniData = alumniSource();
+  const usesUniversityCounts = alumniData.countMode === 'universities' || alumniData.exactAlumniCounts === false;
+  const regions = useMemo(()=>getAlumniRegions(), []);
+  const [active,setActive] = useState('all');
+  const activeRegions = active === 'all' ? regions : regions.filter(r=>r.id === active);
+  const universities = activeRegions.flatMap(region => (region.universities || []).map(u => ({...u, regionLabel:region.label})));
+  const totalMetric = regions.reduce((sum,r)=>sum + alumniRegionMetric(r, usesUniversityCounts), 0);
+  const totalUniversities = regions.reduce((sum,r)=>sum + (r.universities || []).length, 0);
+  const countries = uniq(regions.flatMap(r => (r.universities || []).map(u => u.country || r.countries?.[0])));
+  const activeMetric = activeRegions.reduce((sum,r)=>sum + alumniRegionMetric(r, usesUniversityCounts), 0);
+  const activeCountryCount = uniq(universities.map(u=>u.country).filter(Boolean)).length;
+  const sortedUniversities = universities.slice().sort((a,b)=>String(a.country||'').localeCompare(String(b.country||'')) || String(a.name||'').localeCompare(String(b.name||'')));
+  const activeLabel = active === 'all' ? 'All destinations' : (regions.find(r=>r.id===active)?.label || 'Selected region');
+  const metricLabel = usesUniversityCounts ? 'University destinations' : 'Alumni records';
+  const shortMetricLabel = usesUniversityCounts ? 'Destinations' : 'Alumni';
+
+  return <main>
+    <PageHeader eyebrow="Alumni destinations" title="Where AMSI alumni go next" subtitle="A map-style view built from the AMSI Alumni Around the World university list.">
+      <div className="hero-stats"><Stat num={totalMetric} label={metricLabel}/><Stat num={totalUniversities} label="Universities"/><Stat num={countries.length} label="Countries"/></div>
+    </PageHeader>
+
+    <section className="container section alumni-layout">
+      <article className="panel pad alumni-map-card">
+        <SectionHead kicker="Interactive map" title="Choose a region" subtitle="Press a map marker or region button to show the verified university destinations for that region." />
+        {alumniData.note && <div className="notice info"><b>Verified university destinations</b><span>{alumniData.note}</span></div>}
+        <div className="alumni-map" aria-label="Stylized alumni destination map">
+          <div className="map-land land-americas"></div>
+          <div className="map-land land-europe"></div>
+          <div className="map-land land-africa"></div>
+          <div className="map-land land-asia"></div>
+          <div className="map-land land-australia"></div>
+          {regions.map(region => <button
+            key={region.id}
+            className={`map-pin ${active === region.id ? 'active' : ''}`}
+            style={{top:region.top,left:region.left}}
+            onClick={()=>setActive(region.id)}
+            title={`${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}`}
+          ><span>{region.short}</span><b>{alumniRegionMetric(region, usesUniversityCounts)}</b></button>)}
+        </div>
+        <div className="alumni-region-buttons">
+          <button className={active==='all'?'active':''} onClick={()=>setActive('all')}>All destinations <b>{totalMetric}</b></button>
+          {regions.map(region => <button key={region.id} className={active===region.id?'active':''} onClick={()=>setActive(region.id)}>{region.label}<b>{alumniRegionMetric(region, usesUniversityCounts)}</b></button>)}
+        </div>
+      </article>
+
+      <aside className="panel pad alumni-details-card">
+        <p className="kicker">Selected view</p>
+        <h2>{activeLabel}</h2>
+        <div className="alumni-mini-stats">
+          <Stat num={activeMetric} label={shortMetricLabel} />
+          <Stat num={sortedUniversities.length} label="Universities" />
+          <Stat num={activeCountryCount} label="Countries" />
+        </div>
+        {alumniData.source && <p className="alumni-source-note">Source: {alumniData.source}</p>}
+        <div className="alumni-university-list">
+          {sortedUniversities.length ? sortedUniversities.map((u,i)=><article className="alumni-university" key={`${u.name}-${i}`}>
+            <div><b>{u.name}</b><span>{[u.city,u.country].filter(Boolean).join(', ') || u.regionLabel}</span>{u.notes && <small>{u.notes}</small>}</div>
+            {usesUniversityCounts ? <strong className="destination-dot">✓</strong> : <strong>{Number(u.alumni)||0}</strong>}
+          </article>) : <Empty title="No universities in this view yet." text="Once real alumni data is added, this panel will show the university names and alumni numbers for the selected region." />}
+        </div>
+      </aside>
+    </section>
+  </main>;
+}
+
 function APResources(){
   const [area,setArea] = useState('All');
   const [compare,setCompare] = useState(['AP Biology','AP Chemistry','AP Statistics']);
@@ -927,6 +1028,7 @@ function App(){
   if(route.page==='publications') page=<Publications data={data}/>;
   if(route.page==='subjects') page=<Subjects data={data}/>;
   if(route.page==='collaborations') page=<Collaborations/>;
+  if(route.page==='alumni') page=<AlumniDestinations/>;
   if(route.page==='assistant') page=<KnowledgeAssistant data={data} reading={reading}/>;
   if(route.page==='book') page=<BookView id={route.id} data={data}/>;
   if(route.page==='paper') page=<PaperView id={route.id} data={data} reading={reading}/>;
