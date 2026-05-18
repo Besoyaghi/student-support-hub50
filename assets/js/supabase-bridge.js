@@ -9,6 +9,18 @@
     return window.supabase.createClient(config.url, config.anonKey);
   }
 
+  function canonicalBookId(slugOrId) {
+    const key = String(slugOrId || '');
+    const map = {
+      'amo2-unravel-the-past-2024': 'book_amo2_2024',
+      'reigns-of-revolution-2025': 'book_ror',
+      'amo2-beneath-the-surface-2025': 'book_amo2_2025',
+      'between-order-and-chaos-2026': 'book_amag_geo'
+    };
+
+    return map[key] || ('backend-book-' + key);
+  }
+
   function academicYearId(year) {
     if (Number(year) === 2024) return "ay_2024";
     if (Number(year) === 2025) return "ay_2025";
@@ -20,7 +32,7 @@
     const baseId = row.slug || row.id;
 
     return {
-      id: "backend-book-" + baseId,
+      id: canonicalBookId(baseId),
       backendId: row.id,
       backend: true,
       title: row.title || "Untitled book",

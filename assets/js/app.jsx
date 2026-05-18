@@ -125,35 +125,56 @@ function useLocalData(){
       if(!active) return;
 
       if(bookResult.ok && bookResult.books.length){
+        const backendBooks = bookResult.books;
+
         setBooks(current => {
-          const existing = new Set(current.map(b => b.id));
-          const backendOnly = bookResult.books.filter(b => !existing.has(b.id));
-          return [...backendOnly, ...current];
+          const incoming = new Map(backendBooks.map(book => [book.id, book]));
+
+          const replaced = current.map(book => {
+            if(!incoming.has(book.id)) return book;
+            const backendBook = incoming.get(book.id);
+            return {
+              ...book,
+              ...backendBook,
+              clubId: backendBook.clubId || book.clubId,
+              academicYearId: backendBook.academicYearId || book.academicYearId
+            };
+          });
+
+          const existing = new Set(replaced.map(book => book.id));
+          const backendOnly = backendBooks.filter(book => !existing.has(book.id));
+          return [...backendOnly, ...replaced];
         });
 
-        const newParts = bookResult.books.map(book => ({
-          id: 'part_' + book.id,
-          title: 'Full Book',
-          partNumber: 1,
-          bookId: book.id
-        }));
-
-        const newChapters = bookResult.books.map(book => ({
-          id: 'ch_' + book.id,
-          title: 'Uploaded Publication',
-          chapterNumber: 1,
-          bookId: book.id,
-          partId: 'part_' + book.id
-        }));
-
         setParts(current => {
-          const existing = new Set(current.map(p => p.id));
-          return [...newParts.filter(p => !existing.has(p.id)), ...current];
+          const bookIdsWithParts = new Set(current.map(part => part.bookId));
+          const existing = new Set(current.map(part => part.id));
+          const newParts = backendBooks
+            .filter(book => !bookIdsWithParts.has(book.id))
+            .map(book => ({
+              id: 'part_' + book.id,
+              title: 'Full Book',
+              partNumber: 1,
+              bookId: book.id
+            }));
+
+          return [...newParts.filter(part => !existing.has(part.id)), ...current];
         });
 
         setChapters(current => {
-          const existing = new Set(current.map(c => c.id));
-          return [...newChapters.filter(c => !existing.has(c.id)), ...current];
+          const bookIdsWithChapters = new Set(current.map(chapter => chapter.bookId));
+          const existing = new Set(current.map(chapter => chapter.id));
+          const newChapters = backendBooks
+            .filter(book => !bookIdsWithChapters.has(book.id))
+            .map(book => ({
+              id: 'ch_' + book.id,
+              title: 'Uploaded Publication',
+              chapterNumber: 1,
+              bookId: book.id,
+              partId: 'part_' + book.id
+            }));
+
+          return [...newChapters.filter(chapter => !existing.has(chapter.id)), ...current];
         });
       }
 

@@ -143,31 +143,45 @@ function useLocalData() {
             if (!active)
                 return;
             if (bookResult.ok && bookResult.books.length) {
+                const backendBooks = bookResult.books;
                 setBooks(current => {
-                    const existing = new Set(current.map(b => b.id));
-                    const backendOnly = bookResult.books.filter(b => !existing.has(b.id));
-                    return [...backendOnly, ...current];
+                    const incoming = new Map(backendBooks.map(book => [book.id, book]));
+                    const replaced = current.map(book => {
+                        if (!incoming.has(book.id))
+                            return book;
+                        const backendBook = incoming.get(book.id);
+                        return Object.assign(Object.assign(Object.assign({}, book), backendBook), { clubId: backendBook.clubId || book.clubId, academicYearId: backendBook.academicYearId || book.academicYearId });
+                    });
+                    const existing = new Set(replaced.map(book => book.id));
+                    const backendOnly = backendBooks.filter(book => !existing.has(book.id));
+                    return [...backendOnly, ...replaced];
                 });
-                const newParts = bookResult.books.map(book => ({
-                    id: 'part_' + book.id,
-                    title: 'Full Book',
-                    partNumber: 1,
-                    bookId: book.id
-                }));
-                const newChapters = bookResult.books.map(book => ({
-                    id: 'ch_' + book.id,
-                    title: 'Uploaded Publication',
-                    chapterNumber: 1,
-                    bookId: book.id,
-                    partId: 'part_' + book.id
-                }));
                 setParts(current => {
-                    const existing = new Set(current.map(p => p.id));
-                    return [...newParts.filter(p => !existing.has(p.id)), ...current];
+                    const bookIdsWithParts = new Set(current.map(part => part.bookId));
+                    const existing = new Set(current.map(part => part.id));
+                    const newParts = backendBooks
+                        .filter(book => !bookIdsWithParts.has(book.id))
+                        .map(book => ({
+                        id: 'part_' + book.id,
+                        title: 'Full Book',
+                        partNumber: 1,
+                        bookId: book.id
+                    }));
+                    return [...newParts.filter(part => !existing.has(part.id)), ...current];
                 });
                 setChapters(current => {
-                    const existing = new Set(current.map(c => c.id));
-                    return [...newChapters.filter(c => !existing.has(c.id)), ...current];
+                    const bookIdsWithChapters = new Set(current.map(chapter => chapter.bookId));
+                    const existing = new Set(current.map(chapter => chapter.id));
+                    const newChapters = backendBooks
+                        .filter(book => !bookIdsWithChapters.has(book.id))
+                        .map(book => ({
+                        id: 'ch_' + book.id,
+                        title: 'Uploaded Publication',
+                        chapterNumber: 1,
+                        bookId: book.id,
+                        partId: 'part_' + book.id
+                    }));
+                    return [...newChapters.filter(chapter => !existing.has(chapter.id)), ...current];
                 });
             }
             if (paperResult.ok && paperResult.papers.length) {
@@ -345,21 +359,21 @@ function SearchControls({ query, setQuery, filters, setFilters, options, sort, s
             React.createElement("span", null, "\u2315"),
             React.createElement("input", { value: query, onChange: e => setQuery(e.target.value), placeholder: "Search title, author, keyword, abstract, subject\u2026" })),
         React.createElement("div", { className: "filter-row" },
-            React.createElement("select", { value: filters.type, onChange: e => setFilters({ ...filters, type: e.target.value }) },
+            React.createElement("select", { value: filters.type, onChange: e => setFilters(Object.assign(Object.assign({}, filters), { type: e.target.value })) },
                 React.createElement("option", { value: "all" }, "All types"),
                 React.createElement("option", { value: "book" }, "Books"),
                 React.createElement("option", { value: "paper" }, "Papers"),
                 React.createElement("option", { value: "partner" }, "Partner resources")),
-            React.createElement("select", { value: filters.source, onChange: e => setFilters({ ...filters, source: e.target.value }) },
+            React.createElement("select", { value: filters.source, onChange: e => setFilters(Object.assign(Object.assign({}, filters), { source: e.target.value })) },
                 React.createElement("option", { value: "all" }, "All sources"),
                 options.sources.map(x => React.createElement("option", { key: x }, x))),
-            React.createElement("select", { value: filters.subject, onChange: e => setFilters({ ...filters, subject: e.target.value }) },
+            React.createElement("select", { value: filters.subject, onChange: e => setFilters(Object.assign(Object.assign({}, filters), { subject: e.target.value })) },
                 React.createElement("option", { value: "all" }, "All subjects"),
                 options.subjects.map(x => React.createElement("option", { key: x }, x))),
-            React.createElement("select", { value: filters.author, onChange: e => setFilters({ ...filters, author: e.target.value }) },
+            React.createElement("select", { value: filters.author, onChange: e => setFilters(Object.assign(Object.assign({}, filters), { author: e.target.value })) },
                 React.createElement("option", { value: "all" }, "All authors"),
                 options.authors.map(x => React.createElement("option", { key: x }, x))),
-            React.createElement("select", { value: filters.year, onChange: e => setFilters({ ...filters, year: e.target.value }) },
+            React.createElement("select", { value: filters.year, onChange: e => setFilters(Object.assign(Object.assign({}, filters), { year: e.target.value })) },
                 React.createElement("option", { value: "all" }, "All years"),
                 options.years.map(x => React.createElement("option", { key: x }, x))),
             React.createElement("select", { value: sort, onChange: e => setSort(e.target.value) },
@@ -405,7 +419,7 @@ function useLibraryResults(data) {
                 return false;
             return true;
         });
-        arr = arr.map(item => ({ ...item, score: q ? scoreItem(item, q) : 1 }));
+        arr = arr.map(item => (Object.assign(Object.assign({}, item), { score: q ? scoreItem(item, q) : 1 })));
         if (sort === 'relevance')
             arr.sort((a, b) => b.score - a.score || (b.year || 0) - (a.year || 0));
         if (sort === 'newest')
@@ -443,7 +457,7 @@ function ResearchHub({ data }) {
                 React.createElement(Stat, { num: data.books.length, label: "Books" }),
                 React.createElement(Stat, { num: subjectCount, label: "Subjects" }))),
         React.createElement("section", { className: "container section" },
-            React.createElement(SearchControls, { ...lib }),
+            React.createElement(SearchControls, Object.assign({}, lib)),
             React.createElement("div", { className: "result-summary" },
                 React.createElement("b", null, lib.results.length),
                 " results \u00B7 organized as books and papers"),
@@ -758,11 +772,11 @@ function scoreKnowledgeDoc(doc, question) {
     return score;
 }
 function findKnowledge(question, data, limit = 6) {
-    return buildKnowledgeBase(data).map(doc => ({ ...doc, score: scoreKnowledgeDoc(doc, question) })).filter(doc => doc.score > 0).sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title))).slice(0, limit);
+    return buildKnowledgeBase(data).map(doc => (Object.assign(Object.assign({}, doc), { score: scoreKnowledgeDoc(doc, question) }))).filter(doc => doc.score > 0).sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title))).slice(0, limit);
 }
 function guessAssistantProfile(question) {
     const q = normalize(question);
-    const profile = { ...DEFAULT_PROFILE, grade: q.match(/grade\s*(9|10|11|12)|\b(9th|10th|11th|12th)\b/) ? Number((q.match(/grade\s*(9|10|11|12)/) || [])[1] || (q.includes('12th') ? 12 : q.includes('11th') ? 11 : q.includes('10th') ? 10 : 9)) : 9, interests: [], weaknesses: [], completed: [] };
+    const profile = Object.assign(Object.assign({}, DEFAULT_PROFILE), { grade: q.match(/grade\s*(9|10|11|12)|\b(9th|10th|11th|12th)\b/) ? Number((q.match(/grade\s*(9|10|11|12)/) || [])[1] || (q.includes('12th') ? 12 : q.includes('11th') ? 11 : q.includes('10th') ? 10 : 9)) : 9, interests: [], weaknesses: [], completed: [] });
     const pathway = Object.entries(SYNONYMS).find(([key, vals]) => vals.some(v => q.includes(v)) || q.includes(key));
     if (pathway)
         profile.pathway = pathway[0] === 'stem' ? 'stem' : pathway[0];
@@ -939,7 +953,7 @@ function Collaborations() {
                     React.createElement("option", { value: "All" }, "All resource types"),
                     types.map(t => React.createElement("option", { key: t }, t))),
                 React.createElement("button", { className: "btn primary", onClick: () => go('research') }, "Search with research")),
-            React.createElement("div", { className: "resource-grid" }, visibleResources.map(r => React.createElement(PartnerResourceCard, { key: r.id, resource: { ...r, source: r.partnerName, authors: r.partnerName, year: r.year, subject: r.subject, keywords: r.tags } })))),
+            React.createElement("div", { className: "resource-grid" }, visibleResources.map(r => React.createElement(PartnerResourceCard, { key: r.id, resource: Object.assign(Object.assign({}, r), { source: r.partnerName, authors: r.partnerName, year: r.year, subject: r.subject, keywords: r.tags }) })))),
         React.createElement("section", { className: "container section" },
             React.createElement(SectionHead, { kicker: "Student opportunities", title: "Opportunity board", subtitle: "A scalable board for competitions, STEM events, student projects, research openings, and partner-led opportunities." }),
             React.createElement("div", { className: "opportunity-grid" }, opportunities.map(o => React.createElement("article", { className: "opportunity-card", key: o.id },
@@ -1007,7 +1021,7 @@ function RecommendedPartnerResources({ courses = [], profile = null, compact = f
     const matches = resources.map(r => {
         const tags = [r.subject, r.type, ...(r.tags || [])].map(x => normalize(x));
         const score = [...signals].reduce((n, s) => n + (tags.some(t => t.includes(normalize(s)) || normalize(s).includes(t)) ? 1 : 0), 0);
-        return { ...r, score };
+        return Object.assign(Object.assign({}, r), { score });
     }).filter(r => r.score > 0 || /stem|technology|computer|engineering|ap/i.test(`${r.subject} ${toText(r.tags)}`)).sort((a, b) => b.score - a.score).slice(0, compact ? 2 : 4);
     if (!matches.length)
         return null;
@@ -1056,7 +1070,7 @@ function scoreCourse(course, profile) {
 }
 function generateAPPlan(profile) {
     const loadCap = profile.goal === 'elite' ? 5 : profile.goal === 'ambitious' ? 4 : profile.goal === 'balanced' ? 3 : 2;
-    const ranked = AP_COURSES.filter(c => !c.emerging).map(c => ({ ...c, score: scoreCourse(c, profile) })).sort((a, b) => b.score - a.score);
+    const ranked = AP_COURSES.filter(c => !c.emerging).map(c => (Object.assign(Object.assign({}, c), { score: scoreCourse(c, profile) }))).sort((a, b) => b.score - a.score);
     const plan = [];
     const used = new Set(profile.completed);
     for (let grade = Number(profile.grade); grade <= 12; grade++) {
@@ -1075,8 +1089,8 @@ function APDecider() {
     const [profile, setProfile] = useState(DEFAULT_PROFILE);
     const [result, setResult] = useState(() => generateAPPlan(DEFAULT_PROFILE));
     const interests = uniq(AP_COURSES.flatMap(c => c.interests)).sort();
-    const toggle = (field, value) => setProfile(p => ({ ...p, [field]: p[field].includes(value) ? p[field].filter(x => x !== value) : [...p[field], value] }));
-    const update = patch => setProfile(p => ({ ...p, ...patch }));
+    const toggle = (field, value) => setProfile(p => (Object.assign(Object.assign({}, p), { [field]: p[field].includes(value) ? p[field].filter(x => x !== value) : [...p[field], value] })));
+    const update = patch => setProfile(p => (Object.assign(Object.assign({}, p), patch)));
     return React.createElement("main", null,
         React.createElement(PageHeader, { eyebrow: "AP Decider v2", title: "Build a smarter four-year AP roadmap", subtitle: "The algorithm balances grade level, pathway, strengths, weak points, workload, stress tolerance, and AP readiness." }),
         React.createElement("section", { className: "container section ap-decider-grid" },
@@ -1151,9 +1165,9 @@ function Admin({ data, auth, onLogin }) {
     const [bookFile, setBookFile] = useState(null);
     const [paperFile, setPaperFile] = useState(null);
     async function addBook(e) { e.preventDefault(); const id = 'book_' + Date.now(); let pdf = ''; if (bookFile)
-        pdf = await saveLocalPDF(bookFile, 'book'); const newBook = { ...book, id, pdf, publicationYear: Number(book.publicationYear), size: (bookFile === null || bookFile === void 0 ? void 0 : bookFile.size) || 0, pages: 0, papers: 0 }; const newParts = [...data.parts, { id: 'part_' + id, title: 'Full Book', partNumber: 1, bookId: id }]; const newChapters = book.sections.split('\n').filter(Boolean).map((title, i) => ({ id: `ch_${id}_${i}`, title, chapterNumber: i + 1, bookId: id, partId: 'part_' + id })); data.setBooks([...data.books, newBook]); data.setParts(newParts); data.setChapters([...data.chapters, ...newChapters]); setMsg('Publication saved locally.'); }
+        pdf = await saveLocalPDF(bookFile, 'book'); const newBook = Object.assign(Object.assign({}, book), { id, pdf, publicationYear: Number(book.publicationYear), size: (bookFile === null || bookFile === void 0 ? void 0 : bookFile.size) || 0, pages: 0, papers: 0 }); const newParts = [...data.parts, { id: 'part_' + id, title: 'Full Book', partNumber: 1, bookId: id }]; const newChapters = book.sections.split('\n').filter(Boolean).map((title, i) => ({ id: `ch_${id}_${i}`, title, chapterNumber: i + 1, bookId: id, partId: 'part_' + id })); data.setBooks([...data.books, newBook]); data.setParts(newParts); data.setChapters([...data.chapters, ...newChapters]); setMsg('Publication saved locally.'); }
     async function addPaper(e) { e.preventDefault(); let pdf = ''; if (paperFile)
-        pdf = await saveLocalPDF(paperFile, 'paper'); const newPaper = { ...paper, id: 'paper_' + Date.now(), num: data.papers.length + 1, year: Number(paper.year), keywords: paper.keywords.split(',').map(x => x.trim()).filter(Boolean), pdf }; data.setPapers([...data.papers, newPaper]); setMsg('Paper saved locally.'); }
+        pdf = await saveLocalPDF(paperFile, 'paper'); const newPaper = Object.assign(Object.assign({}, paper), { id: 'paper_' + Date.now(), num: data.papers.length + 1, year: Number(paper.year), keywords: paper.keywords.split(',').map(x => x.trim()).filter(Boolean), pdf }); data.setPapers([...data.papers, newPaper]); setMsg('Paper saved locally.'); }
     const exportMeta = () => { const blob = new Blob([JSON.stringify({ books: data.books, papers: data.papers, parts: data.parts, chapters: data.chapters, partners: partnerData('partners', []), partnerResources: partnerData('resources', []), opportunities: partnerData('opportunities', []) }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'amrc-metadata-export.json'; a.click(); URL.revokeObjectURL(a.href); };
     if (!auth)
         return React.createElement("main", null,
@@ -1173,32 +1187,32 @@ function Admin({ data, auth, onLogin }) {
                 React.createElement("form", { className: "panel pad", onSubmit: addBook },
                     React.createElement("h2", null, "Add publication"),
                     React.createElement(Field, { label: "Title" },
-                        React.createElement("input", { value: book.title, onChange: e => setBook({ ...book, title: e.target.value }) })),
+                        React.createElement("input", { value: book.title, onChange: e => setBook(Object.assign(Object.assign({}, book), { title: e.target.value })) })),
                     React.createElement(Field, { label: "Editors" },
-                        React.createElement("input", { value: book.editors, onChange: e => setBook({ ...book, editors: e.target.value }) })),
+                        React.createElement("input", { value: book.editors, onChange: e => setBook(Object.assign(Object.assign({}, book), { editors: e.target.value })) })),
                     React.createElement(Field, { label: "Description" },
-                        React.createElement("textarea", { value: book.description, onChange: e => setBook({ ...book, description: e.target.value }) })),
+                        React.createElement("textarea", { value: book.description, onChange: e => setBook(Object.assign(Object.assign({}, book), { description: e.target.value })) })),
                     React.createElement(Field, { label: "Sections, one per line" },
-                        React.createElement("textarea", { value: book.sections, onChange: e => setBook({ ...book, sections: e.target.value }) })),
+                        React.createElement("textarea", { value: book.sections, onChange: e => setBook(Object.assign(Object.assign({}, book), { sections: e.target.value })) })),
                     React.createElement(Field, { label: "PDF" },
                         React.createElement("input", { type: "file", accept: "application/pdf", onChange: e => setBookFile(e.target.files[0]) })),
                     React.createElement("button", { className: "btn primary" }, "Save publication")),
                 React.createElement("form", { className: "panel pad", onSubmit: addPaper },
                     React.createElement("h2", null, "Add paper"),
                     React.createElement(Field, { label: "Title" },
-                        React.createElement("input", { value: paper.title, onChange: e => setPaper({ ...paper, title: e.target.value }) })),
+                        React.createElement("input", { value: paper.title, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { title: e.target.value })) })),
                     React.createElement(Field, { label: "Authors" },
-                        React.createElement("input", { value: paper.authors, onChange: e => setPaper({ ...paper, authors: e.target.value }) })),
+                        React.createElement("input", { value: paper.authors, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { authors: e.target.value })) })),
                     React.createElement(Field, { label: "Abstract" },
-                        React.createElement("textarea", { value: paper.abstract, onChange: e => setPaper({ ...paper, abstract: e.target.value }) })),
+                        React.createElement("textarea", { value: paper.abstract, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { abstract: e.target.value })) })),
                     React.createElement(Field, { label: "Category" },
-                        React.createElement("input", { value: paper.category, onChange: e => setPaper({ ...paper, category: e.target.value }) })),
+                        React.createElement("input", { value: paper.category, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { category: e.target.value })) })),
                     React.createElement(Field, { label: "Book" },
-                        React.createElement("select", { value: paper.bookId, onChange: e => setPaper({ ...paper, bookId: e.target.value }) },
+                        React.createElement("select", { value: paper.bookId, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { bookId: e.target.value })) },
                             React.createElement("option", { value: "" }, "Standalone"),
                             data.books.map(b => React.createElement("option", { key: b.id, value: b.id }, b.title)))),
                     React.createElement(Field, { label: "Keywords" },
-                        React.createElement("input", { value: paper.keywords, onChange: e => setPaper({ ...paper, keywords: e.target.value }) })),
+                        React.createElement("input", { value: paper.keywords, onChange: e => setPaper(Object.assign(Object.assign({}, paper), { keywords: e.target.value })) })),
                     React.createElement(Field, { label: "PDF" },
                         React.createElement("input", { type: "file", accept: "application/pdf", onChange: e => setPaperFile(e.target.files[0]) })),
                     React.createElement("button", { className: "btn primary" }, "Save paper"))),
@@ -1211,7 +1225,7 @@ function LoginModal({ onClose, onSuccess }) {
     const [password, setPassword] = useState('');
     const [err, setErr] = useState('');
     function submit(e) { e.preventDefault(); const u = USERS[name]; if (u && u.password === password) {
-        onSuccess({ username: name, ...u });
+        onSuccess(Object.assign({ username: name }, u));
     }
     else
         setErr('Invalid username or password.'); }
