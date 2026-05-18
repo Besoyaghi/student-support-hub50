@@ -1,13 +1,13 @@
 // Student Support Hub alumni destinations data
 // Source: AMSI Alumni around the world (V.03).pdf
-// The source lists universities attended by AMSI students, not exact alumni counts per university.
+// Includes university destinations by country and AMSI graduates-per-year totals.
 
 window.SSH_ALUMNI_DATA = {
   "lastUpdated": "2026-05-18",
   "source": "AMSI Alumni around the world (V.03).pdf",
   "countMode": "universities",
   "exactAlumniCounts": false,
-  "note": "The source PDF lists universities attended by AMSI students. It does not provide exact alumni counts per university, so this page counts verified university destinations.",
+  "note": "The source PDF provides university destinations by country and AMSI graduate totals by year. It does not provide exact alumni counts per university or per country, so the map counts verified university destinations while the totals card shows the PDF’s graduate totals.",
   "regions": [
     {
       "id": "united-states",
@@ -1193,5 +1193,362 @@ window.SSH_ALUMNI_DATA = {
         }
       ]
     }
-  ]
+  ],
+  "summary": {
+    "universityDestinations": 268,
+    "countries": 24,
+    "regions": 8
+  },
+  "graduates": {
+    "source": "AMSI Graduates Per Year chart in AMSI Alumni around the world (V.03).pdf",
+    "yearRange": "1980–2015",
+    "total": 6670,
+    "schools": [
+      {
+        "id": "amg",
+        "name": "Al Mawakeb School, Al Garhoud",
+        "total": 3288,
+        "years": [
+          {
+            "year": 1980,
+            "graduates": 7
+          },
+          {
+            "year": 1981,
+            "graduates": 9
+          },
+          {
+            "year": 1982,
+            "graduates": 7
+          },
+          {
+            "year": 1983,
+            "graduates": 6
+          },
+          {
+            "year": 1984,
+            "graduates": 17
+          },
+          {
+            "year": 1985,
+            "graduates": 19
+          },
+          {
+            "year": 1986,
+            "graduates": 25
+          },
+          {
+            "year": 1987,
+            "graduates": 25
+          },
+          {
+            "year": 1988,
+            "graduates": 40
+          },
+          {
+            "year": 1989,
+            "graduates": 30
+          },
+          {
+            "year": 1990,
+            "graduates": 18
+          },
+          {
+            "year": 1991,
+            "graduates": 29
+          },
+          {
+            "year": 1992,
+            "graduates": 54
+          },
+          {
+            "year": 1993,
+            "graduates": 73
+          },
+          {
+            "year": 1994,
+            "graduates": 53
+          },
+          {
+            "year": 1995,
+            "graduates": 76
+          },
+          {
+            "year": 1996,
+            "graduates": 95
+          },
+          {
+            "year": 1997,
+            "graduates": 106
+          },
+          {
+            "year": 1998,
+            "graduates": 131
+          },
+          {
+            "year": 1999,
+            "graduates": 110
+          },
+          {
+            "year": 2000,
+            "graduates": 130
+          },
+          {
+            "year": 2001,
+            "graduates": 134
+          },
+          {
+            "year": 2002,
+            "graduates": 115
+          },
+          {
+            "year": 2003,
+            "graduates": 143
+          },
+          {
+            "year": 2004,
+            "graduates": 129
+          },
+          {
+            "year": 2005,
+            "graduates": 144
+          },
+          {
+            "year": 2006,
+            "graduates": 160
+          },
+          {
+            "year": 2007,
+            "graduates": 143
+          },
+          {
+            "year": 2008,
+            "graduates": 133
+          },
+          {
+            "year": 2009,
+            "graduates": 173
+          },
+          {
+            "year": 2010,
+            "graduates": 154
+          },
+          {
+            "year": 2011,
+            "graduates": 159
+          },
+          {
+            "year": 2012,
+            "graduates": 172
+          },
+          {
+            "year": 2013,
+            "graduates": 141
+          },
+          {
+            "year": 2014,
+            "graduates": 174
+          },
+          {
+            "year": 2015,
+            "graduates": 154
+          }
+        ]
+      },
+      {
+        "id": "isk",
+        "name": "International School, Al Koura",
+        "total": 1230,
+        "years": [
+          {
+            "year": 1996,
+            "graduates": 30
+          },
+          {
+            "year": 1997,
+            "graduates": 21
+          },
+          {
+            "year": 1998,
+            "graduates": 26
+          },
+          {
+            "year": 1999,
+            "graduates": 45
+          },
+          {
+            "year": 2000,
+            "graduates": 61
+          },
+          {
+            "year": 2001,
+            "graduates": 59
+          },
+          {
+            "year": 2002,
+            "graduates": 61
+          },
+          {
+            "year": 2003,
+            "graduates": 63
+          },
+          {
+            "year": 2004,
+            "graduates": 77
+          },
+          {
+            "year": 2005,
+            "graduates": 72
+          },
+          {
+            "year": 2006,
+            "graduates": 65
+          },
+          {
+            "year": 2007,
+            "graduates": 76
+          },
+          {
+            "year": 2008,
+            "graduates": 61
+          },
+          {
+            "year": 2009,
+            "graduates": 65
+          },
+          {
+            "year": 2010,
+            "graduates": 65
+          },
+          {
+            "year": 2011,
+            "graduates": 71
+          },
+          {
+            "year": 2012,
+            "graduates": 75
+          },
+          {
+            "year": 2013,
+            "graduates": 80
+          },
+          {
+            "year": 2014,
+            "graduates": 73
+          },
+          {
+            "year": 2015,
+            "graduates": 84
+          }
+        ]
+      },
+      {
+        "id": "amb",
+        "name": "Al Mawakeb School, Al Barsha",
+        "total": 1744,
+        "years": [
+          {
+            "year": 1999,
+            "graduates": 15
+          },
+          {
+            "year": 2000,
+            "graduates": 31
+          },
+          {
+            "year": 2001,
+            "graduates": 26
+          },
+          {
+            "year": 2002,
+            "graduates": 59
+          },
+          {
+            "year": 2003,
+            "graduates": 72
+          },
+          {
+            "year": 2004,
+            "graduates": 98
+          },
+          {
+            "year": 2005,
+            "graduates": 77
+          },
+          {
+            "year": 2006,
+            "graduates": 123
+          },
+          {
+            "year": 2007,
+            "graduates": 120
+          },
+          {
+            "year": 2008,
+            "graduates": 145
+          },
+          {
+            "year": 2009,
+            "graduates": 144
+          },
+          {
+            "year": 2010,
+            "graduates": 143
+          },
+          {
+            "year": 2011,
+            "graduates": 146
+          },
+          {
+            "year": 2012,
+            "graduates": 147
+          },
+          {
+            "year": 2013,
+            "graduates": 134
+          },
+          {
+            "year": 2014,
+            "graduates": 118
+          },
+          {
+            "year": 2015,
+            "graduates": 146
+          }
+        ]
+      },
+      {
+        "id": "isas",
+        "name": "International School of Arts & Sciences",
+        "total": 408,
+        "years": [
+          {
+            "year": 2010,
+            "graduates": 44
+          },
+          {
+            "year": 2011,
+            "graduates": 44
+          },
+          {
+            "year": 2012,
+            "graduates": 40
+          },
+          {
+            "year": 2013,
+            "graduates": 90
+          },
+          {
+            "year": 2014,
+            "graduates": 100
+          },
+          {
+            "year": 2015,
+            "graduates": 90
+          }
+        ]
+      }
+    ],
+    "note": "Graduate totals come from the annual bar chart. The PDF does not give exact alumni totals by university or by country."
+  }
 };

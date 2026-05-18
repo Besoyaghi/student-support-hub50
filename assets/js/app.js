@@ -1015,7 +1015,7 @@ function alumniRegionMetric(region, useUniversityCounts) {
     return useUniversityCounts ? (region.universities || []).length : alumniRegionCount(region);
 }
 function AlumniDestinations() {
-    var _a;
+    var _a, _b, _c, _d;
     const alumniData = alumniSource();
     const usesUniversityCounts = alumniData.countMode === 'universities' || alumniData.exactAlumniCounts === false;
     const regions = useMemo(() => getAlumniRegions(), []);
@@ -1025,23 +1025,40 @@ function AlumniDestinations() {
     const totalMetric = regions.reduce((sum, r) => sum + alumniRegionMetric(r, usesUniversityCounts), 0);
     const totalUniversities = regions.reduce((sum, r) => sum + (r.universities || []).length, 0);
     const countries = uniq(regions.flatMap(r => (r.universities || []).map(u => { var _a; return u.country || ((_a = r.countries) === null || _a === void 0 ? void 0 : _a[0]); })));
+    const graduateSchools = Array.isArray((_a = alumniData.graduates) === null || _a === void 0 ? void 0 : _a.schools) ? alumniData.graduates.schools : [];
+    const graduateTotal = Number((_b = alumniData.graduates) === null || _b === void 0 ? void 0 : _b.total) || graduateSchools.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+    const graduateRange = ((_c = alumniData.graduates) === null || _c === void 0 ? void 0 : _c.yearRange) || '';
     const activeMetric = activeRegions.reduce((sum, r) => sum + alumniRegionMetric(r, usesUniversityCounts), 0);
     const activeCountryCount = uniq(universities.map(u => u.country).filter(Boolean)).length;
     const sortedUniversities = universities.slice().sort((a, b) => String(a.country || '').localeCompare(String(b.country || '')) || String(a.name || '').localeCompare(String(b.name || '')));
-    const activeLabel = active === 'all' ? 'All destinations' : (((_a = regions.find(r => r.id === active)) === null || _a === void 0 ? void 0 : _a.label) || 'Selected region');
+    const activeLabel = active === 'all' ? 'All destinations' : (((_d = regions.find(r => r.id === active)) === null || _d === void 0 ? void 0 : _d.label) || 'Selected region');
     const metricLabel = usesUniversityCounts ? 'University destinations' : 'Alumni records';
     const shortMetricLabel = usesUniversityCounts ? 'Destinations' : 'Alumni';
     return React.createElement("main", null,
         React.createElement(PageHeader, { eyebrow: "Alumni destinations", title: "Where AMSI alumni go next", subtitle: "A map-style view built from the AMSI Alumni Around the World university list." },
             React.createElement("div", { className: "hero-stats" },
-                React.createElement(Stat, { num: totalMetric, label: metricLabel }),
-                React.createElement(Stat, { num: totalUniversities, label: "Universities" }),
+                React.createElement(Stat, { num: graduateTotal ? graduateTotal.toLocaleString() : totalMetric, label: graduateTotal ? 'AMSI graduates' : metricLabel }),
+                React.createElement(Stat, { num: totalUniversities, label: "University destinations" }),
                 React.createElement(Stat, { num: countries.length, label: "Countries" }))),
+        graduateTotal ? React.createElement("section", { className: "container alumni-totals-strip" },
+            React.createElement("article", { className: "panel pad alumni-total-card" },
+                React.createElement("div", null,
+                    React.createElement("p", { className: "kicker" }, "AMSI graduate totals"),
+                    React.createElement("h2", null,
+                        graduateTotal.toLocaleString(),
+                        " graduates"),
+                    React.createElement("p", { className: "muted" },
+                        "From the AMSI Graduates Per Year chart",
+                        graduateRange ? `, ${graduateRange}` : '',
+                        ". These are total graduates across the AMSI schools shown in the PDF, not per-university counts.")),
+                React.createElement("div", { className: "alumni-school-totals" }, graduateSchools.map(s => React.createElement("div", { key: s.id },
+                    React.createElement("b", null, Number(s.total || 0).toLocaleString()),
+                    React.createElement("span", null, s.name)))))) : null,
         React.createElement("section", { className: "container section alumni-layout" },
             React.createElement("article", { className: "panel pad alumni-map-card" },
                 React.createElement(SectionHead, { kicker: "Interactive map", title: "Choose a region", subtitle: "Press a map marker or region button to show the verified university destinations for that region." }),
                 alumniData.note && React.createElement("div", { className: "notice info" },
-                    React.createElement("b", null, "Verified university destinations"),
+                    React.createElement("b", null, "Totals from the uploaded PDF"),
                     React.createElement("span", null, alumniData.note)),
                 React.createElement("div", { className: "alumni-map", "aria-label": "Stylized alumni destination map" },
                     React.createElement("div", { className: "map-land land-americas" }),

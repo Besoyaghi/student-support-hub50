@@ -836,6 +836,9 @@ function AlumniDestinations(){
   const totalMetric = regions.reduce((sum,r)=>sum + alumniRegionMetric(r, usesUniversityCounts), 0);
   const totalUniversities = regions.reduce((sum,r)=>sum + (r.universities || []).length, 0);
   const countries = uniq(regions.flatMap(r => (r.universities || []).map(u => u.country || r.countries?.[0])));
+  const graduateSchools = Array.isArray(alumniData.graduates?.schools) ? alumniData.graduates.schools : [];
+  const graduateTotal = Number(alumniData.graduates?.total) || graduateSchools.reduce((sum,s)=>sum + (Number(s.total)||0), 0);
+  const graduateRange = alumniData.graduates?.yearRange || '';
   const activeMetric = activeRegions.reduce((sum,r)=>sum + alumniRegionMetric(r, usesUniversityCounts), 0);
   const activeCountryCount = uniq(universities.map(u=>u.country).filter(Boolean)).length;
   const sortedUniversities = universities.slice().sort((a,b)=>String(a.country||'').localeCompare(String(b.country||'')) || String(a.name||'').localeCompare(String(b.name||'')));
@@ -845,13 +848,26 @@ function AlumniDestinations(){
 
   return <main>
     <PageHeader eyebrow="Alumni destinations" title="Where AMSI alumni go next" subtitle="A map-style view built from the AMSI Alumni Around the World university list.">
-      <div className="hero-stats"><Stat num={totalMetric} label={metricLabel}/><Stat num={totalUniversities} label="Universities"/><Stat num={countries.length} label="Countries"/></div>
+      <div className="hero-stats"><Stat num={graduateTotal ? graduateTotal.toLocaleString() : totalMetric} label={graduateTotal ? 'AMSI graduates' : metricLabel}/><Stat num={totalUniversities} label="University destinations"/><Stat num={countries.length} label="Countries"/></div>
     </PageHeader>
+
+    {graduateTotal ? <section className="container alumni-totals-strip">
+      <article className="panel pad alumni-total-card">
+        <div>
+          <p className="kicker">AMSI graduate totals</p>
+          <h2>{graduateTotal.toLocaleString()} graduates</h2>
+          <p className="muted">From the AMSI Graduates Per Year chart{graduateRange ? `, ${graduateRange}` : ''}. These are total graduates across the AMSI schools shown in the PDF, not per-university counts.</p>
+        </div>
+        <div className="alumni-school-totals">
+          {graduateSchools.map(s => <div key={s.id}><b>{Number(s.total || 0).toLocaleString()}</b><span>{s.name}</span></div>)}
+        </div>
+      </article>
+    </section> : null}
 
     <section className="container section alumni-layout">
       <article className="panel pad alumni-map-card">
         <SectionHead kicker="Interactive map" title="Choose a region" subtitle="Press a map marker or region button to show the verified university destinations for that region." />
-        {alumniData.note && <div className="notice info"><b>Verified university destinations</b><span>{alumniData.note}</span></div>}
+        {alumniData.note && <div className="notice info"><b>Totals from the uploaded PDF</b><span>{alumniData.note}</span></div>}
         <div className="alumni-map" aria-label="Stylized alumni destination map">
           <div className="map-land land-americas"></div>
           <div className="map-land land-europe"></div>
