@@ -169,26 +169,44 @@ function useLocalData() {
                     }));
                     return [...newParts.filter(part => !existing.has(part.id)), ...current];
                 });
-                setChapters(current => {
-                    const bookIdsWithChapters = new Set(current.map(chapter => chapter.bookId));
-                    const existing = new Set(current.map(chapter => chapter.id));
-                    const newChapters = backendBooks
-                        .filter(book => !bookIdsWithChapters.has(book.id))
-                        .map(book => ({
-                        id: 'ch_' + book.id,
-                        title: 'Uploaded Publication',
-                        chapterNumber: 1,
-                        bookId: book.id,
-                        partId: 'part_' + book.id
-                    }));
-                    return [...newChapters.filter(chapter => !existing.has(chapter.id)), ...current];
-                });
+                setChapters(current => current.filter(chapter => !String(chapter.id).startsWith('backend-chapter-') && !String(chapter.id).startsWith('ch_backend-book-')));
             }
             if (paperResult.ok && paperResult.papers.length) {
                 setPapers(current => {
                     const existing = new Set(current.map(p => p.id));
                     const backendOnly = paperResult.papers.filter(p => !existing.has(p.id));
                     return [...backendOnly, ...current];
+                });
+                const grouped = new Map();
+                paperResult.papers
+                    .filter(p => p.bookId)
+                    .forEach(p => {
+                    const title = p.category || 'Uploaded Publication';
+                    const key = `${p.bookId}::${title}`;
+                    if (!grouped.has(key))
+                        grouped.set(key, { bookId: p.bookId, title, firstNum: p.num || 9999 });
+                    else
+                        grouped.get(key).firstNum = Math.min(grouped.get(key).firstNum, p.num || 9999);
+                });
+                const byBook = {};
+                Array.from(grouped.values()).forEach(group => {
+                    if (!byBook[group.bookId])
+                        byBook[group.bookId] = [];
+                    byBook[group.bookId].push(group);
+                });
+                const backendChapters = Object.entries(byBook).flatMap(([bookId, groups]) => groups
+                    .sort((a, b) => (a.firstNum || 0) - (b.firstNum || 0) || a.title.localeCompare(b.title))
+                    .map((group, index) => ({
+                    id: `backend-chapter-${bookId}-${String(group.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+                    title: group.title,
+                    chapterNumber: index + 1,
+                    bookId,
+                    partId: 'part_' + bookId
+                })));
+                setChapters(current => {
+                    const cleaned = current.filter(chapter => !String(chapter.id).startsWith('backend-chapter-') && !String(chapter.id).startsWith('ch_backend-book-'));
+                    const existing = new Set(cleaned.map(chapter => chapter.id));
+                    return [...backendChapters.filter(chapter => !existing.has(chapter.id)), ...cleaned];
                 });
             }
             setBackendStatus(`${bookResult.message || ''} ${paperResult.message || ''}`.trim());

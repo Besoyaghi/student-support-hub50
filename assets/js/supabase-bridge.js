@@ -51,9 +51,9 @@
   function mapPaper(row) {
     const bookSlug = row.books && row.books.slug ? row.books.slug : null;
     const backendBookId = bookSlug
-      ? "backend-book-" + bookSlug
+      ? canonicalBookId(bookSlug)
       : row.book_id
-        ? "backend-book-" + row.book_id
+        ? canonicalBookId(row.book_id)
         : "";
 
     return {
@@ -63,13 +63,13 @@
       num: row.paper_number || 0,
       title: row.title || "Untitled paper",
       authors: Array.isArray(row.paper_authors) && row.paper_authors.length
-  ? row.paper_authors
-      .slice()
-      .sort((a,b)=>(a.author_order || 0) - (b.author_order || 0))
-      .map(pa => pa.authors?.full_name)
-      .filter(Boolean)
-      .join(", ")
-  : "Author not listed",
+        ? row.paper_authors
+            .slice()
+            .sort((a,b)=>(a.author_order || 0) - (b.author_order || 0))
+            .map(pa => pa.authors?.full_name)
+            .filter(Boolean)
+            .join(", ")
+        : "Author not listed",
       abstract: row.abstract || "",
       year: row.year || "",
       category: row.categories && row.categories.name ? row.categories.name : "Uncategorized",
@@ -84,18 +84,39 @@
     };
   }
 
+  async function fetchAllPaged(buildQuery, pageSize) {
+    let all = [];
+    let from = 0;
+    const size = pageSize || 1000;
+
+    while (true) {
+      const to = from + size - 1;
+      const { data, error } = await buildQuery().range(from, to);
+
+      if (error) return { data: all, error };
+
+      const rows = data || [];
+      all = all.concat(rows);
+
+      if (rows.length < size) break;
+      from += size;
+      if (from > 20000) break;
+    }
+
+    return { data: all, error: null };
+  }
+
   async function loadBooks() {
     const client = getClient();
     if (!client) {
       return { ok: false, books: [], message: "Supabase is not configured." };
     }
 
-    const { data, error } = await client
+    const { data, error } = await fetchAllPaged(() => client
       .from("books")
       .select("id, slug, title, subtitle, description, year, source, pdf_url, status")
       .eq("status", "published")
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .order("created_at", { ascending: false }), 1000);
 
     if (error) {
       console.warn("Student Support Hub Supabase books load failed:", error.message);
@@ -115,14 +136,15 @@
       return { ok: false, papers: [], message: "Supabase is not configured." };
     }
 
-    const { data, error } = await client
+    const selectColumns = "id, slug, title, abstract, year, type, source, book_id, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status, books(slug,title), categories(name), paper_authors(author_order, authors(full_name))";
+
+    const { data, error } = await fetchAllPaged(() => client
       .from("papers")
-      .select(
-  "id, slug, title, abstract, year, type, source, book_id, paper_number, keywords, pdf_url, citation_apa, citation_mla, citation_chicago, status, books(slug,title), categories(name), paper_authors(author_order, authors(full_name))"
-)
+      .select(selectColumns)
       .eq("status", "published")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .order("book_id", { ascending: true })
+      .order("paper_number", { ascending: true })
+      .order("created_at", { ascending: false }), 1000);
 
     if (error) {
       console.warn("Student Support Hub Supabase papers load failed:", error.message);
