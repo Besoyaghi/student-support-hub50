@@ -250,13 +250,7 @@ function TopBar({route, auth, onLogin, onLogout}){
       )}
     </nav>
 
-    <div className="nav-actions">
-      {auth
-        ? <button className="btn ghost small" onClick={onLogout}>Sign out</button>
-        : <button className="btn ghost small" onClick={onLogin}>Admin sign in</button>
-      }
-    </div>
-  </header>;
+      </header>;
 }
 
 function Badge({children, tone=''}){ return <span className={`badge ${tone}`}>{children}</span>; }
