@@ -227,7 +227,7 @@ function TopBar({route, auth, onLogin, onLogout}){
     ['assistant','AI Assistant'],
     ['ap-resources','Advanced Placement Resources'],
     ['ap-decider','AP Decider'],
-    ['reading-list','Reading List'],
+    ['reading-list','Reading List']
   ];
 
   const active = route.page;
@@ -240,15 +240,13 @@ function TopBar({route, auth, onLogin, onLogout}){
 
     <nav className="nav">
       {nav.map(([id,label]) =>
-        id === 'admin'
-          ? <button key={id} onClick={()=>{ window.open('./admin.html', '_blank'); }}>{label}</button>
-          : <button
-              key={id}
-              className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book')) ? 'active' : ''}
-              onClick={()=>go(id)}
-            >
-              {label}
-            </button>
+        <button
+          key={id}
+          className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book')) ? 'active' : ''}
+          onClick={()=>go(id)}
+        >
+          {label}
+        </button>
       )}
     </nav>
 
