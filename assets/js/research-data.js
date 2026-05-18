@@ -1,6 +1,6 @@
 const V="v20_amrc_professional_hub";
 const DB={get(k,fb){if(localStorage.getItem('v')!==V)return fb;try{return JSON.parse(localStorage.getItem(k))||fb}catch{return fb}},set(k,v){localStorage.setItem('v',V);localStorage.setItem(k,JSON.stringify(v))}};
-const USERS={"Basil Mustafa":{password:"Basilmustafa265",role:"super_admin",name:"Basil Mustafa"},"admin":{password:"amrc2025",role:"admin",name:"AMRC Admin"}};
+const USERS={};
 const FILE_DB_NAME='ssh_amrc_research_hub_files';const FILE_STORE='files';
 function openFileDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('IndexedDB is not available in this browser'));return}const req=indexedDB.open(FILE_DB_NAME,1);req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(FILE_STORE))db.createObjectStore(FILE_STORE,{keyPath:'id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Could not open local file database'))})}
 async function saveLocalPDF(file,prefix='pdf'){if(!file)return'';const safe=(file.name||'upload.pdf').replace(/[^a-z0-9_.-]+/gi,'-').toLowerCase();const id=`${prefix}_${Date.now()}_${safe}`;const db=await openFileDB();await new Promise((resolve,reject)=>{const tx=db.transaction(FILE_STORE,'readwrite');tx.objectStore(FILE_STORE).put({id,name:file.name,type:file.type||'application/pdf',size:file.size,createdAt:new Date().toISOString(),blob:file});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('Could not save PDF'))});db.close();return `idb:${id}`}

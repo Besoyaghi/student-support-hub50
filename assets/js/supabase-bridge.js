@@ -26,7 +26,7 @@
       title: row.title || "Untitled book",
       description: row.description || row.subtitle || "",
       publicationYear: row.year || new Date().getFullYear(),
-      editors: row.source || "Student Support Hub Backend",
+      editors: row.source || "AMRC Research Hub",
       clubId: "club_amg",
       academicYearId: academicYearId(row.year),
       pdf: row.pdf_url || "",
@@ -57,12 +57,12 @@
       .map(pa => pa.authors?.full_name)
       .filter(Boolean)
       .join(", ")
-  : "Student Support Hub Backend",
+  : "Author not listed",
       abstract: row.abstract || "",
       year: row.year || "",
-      category: row.categories && row.categories.name ? row.categories.name : "Backend Library",
-      club: row.source || "Supabase",
-      source: row.source || "Supabase",
+      category: row.categories && row.categories.name ? row.categories.name : "Uncategorized",
+      club: row.source || "AMRC Research Hub",
+      source: row.source || "AMRC Research Hub",
       keywords: row.keywords || [],
       pdf: row.pdf_url || "",
       bookId: backendBookId,

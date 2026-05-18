@@ -1,6 +1,6 @@
 const { useEffect, useMemo, useState } = React;
 
-const ROUTES = ['home','research','publications','subjects','collaborations','assistant','ap-resources','ap-decider','reading-list','admin','book','paper'];
+const ROUTES = ['home','research','publications','subjects','collaborations','assistant','ap-resources','ap-decider','reading-list','book','paper'];
 const STORAGE = {
   readingList: 'ssh_reading_list_v3',
   auth: 'ssh_admin_auth_v3',
@@ -873,16 +873,13 @@ function LoginModal({onClose,onSuccess}){
   return <div className="modal-back"><form className="modal" onSubmit={submit}><h2>Admin sign in</h2><Field label="Username"><input value={name} onChange={e=>setName(e.target.value)}/></Field><Field label="Password"><input type="password" value={password} onChange={e=>setPassword(e.target.value)}/></Field>{err&&<p className="error">{err}</p>}<div className="toolbar"><button className="btn primary">Sign in</button><button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div></form></div>;
 }
 function NotFound(){ return <main className="container section"><Empty title="Page not found." text="The requested record does not exist in this release." /></main>; }
-function Footer(){ return <footer className="footer"><div className="container"><div><b>Student Support Hub</b><span>AMRC Research Hub · AP Resources · Collaborations · Academic planning</span></div><div>Netlify-ready static release · Knowledge assistant · PDFs included</div></div></footer>; }
+function Footer(){ return <footer className="footer"><div className="container"><div><b>Student Support Hub</b><span>AMRC Research Hub · AP Resources · Collaborations · Academic planning</span></div><div>Academic research library · Student publications · Planning resources</div></div></footer>; }
 
 function App(){
   const route = useRoute();
   const data = useLocalData();
   const reading = useReadingList();
-  const [auth,setAuth] = useState(()=>readJSON(STORAGE.auth, null));
-  const [loginOpen,setLoginOpen] = useState(false);
-  const onLoginSuccess = user => { setAuth(user); writeJSON(STORAGE.auth, user); setLoginOpen(false); };
-  const onLogout = () => { setAuth(null); localStorage.removeItem(STORAGE.auth); };
+
   let page = null;
   if(route.page==='home') page=<Home data={data}/>;
   if(route.page==='research') page=<ResearchHub data={data}/>;
@@ -895,8 +892,8 @@ function App(){
   if(route.page==='ap-resources') page=<APResources/>;
   if(route.page==='ap-decider') page=<APDecider/>;
   if(route.page==='reading-list') page=<ReadingList data={data} reading={reading}/>;
-  if(route.page==='admin') page=<Admin data={data} auth={auth} onLogin={()=>setLoginOpen(true)}/>;
-  return <><TopBar route={route} auth={auth} onLogin={()=>setLoginOpen(true)} onLogout={onLogout}/>{page || <NotFound/>}<Footer/>{loginOpen&&<LoginModal onClose={()=>setLoginOpen(false)} onSuccess={onLoginSuccess}/>}</>;
+
+  return <><TopBar route={route}/>{page || <NotFound/>}<Footer/></>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
