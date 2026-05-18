@@ -85,3 +85,65 @@ button,input,select,textarea{font:inherit} button{cursor:pointer} a{color:inheri
 .alumni-source-note{margin:8px 0 4px;color:#64748b;font-size:12px;line-height:1.45}.alumni-university strong.destination-dot{background:#dcfce7;color:#047857;font-size:16px}.alumni-university-list{max-height:620px}
 
 .alumni-totals-strip{margin-top:-34px;margin-bottom:10px}.alumni-total-card{display:grid;grid-template-columns:minmax(260px,1fr) 2fr;gap:24px;align-items:center;background:linear-gradient(135deg,#ffffff,#f8fbff)}.alumni-total-card h2{margin:4px 0 8px;font-size:clamp(34px,5vw,64px);line-height:1;color:#0f172a}.alumni-school-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.alumni-school-totals div{border:1px solid var(--line);border-radius:18px;padding:14px 16px;background:#fff}.alumni-school-totals b{display:block;font-size:24px;color:#2563eb}.alumni-school-totals span{display:block;color:#64748b;font-size:13px;line-height:1.35}@media(max-width:850px){.alumni-total-card{grid-template-columns:1fr}.alumni-school-totals{grid-template-columns:1fr}}
+
+
+/* Alumni graphic map and combined AP hub */
+.alumni-map-graphic{
+  height:auto;
+  aspect-ratio: 2400 / 735;
+  background:#0b2238;
+  border-color:#cbd5e1;
+}
+.alumni-map-graphic:before{display:none}
+.alumni-map-graphic img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  filter:saturate(.98) contrast(1.02);
+}
+.alumni-map-overlay{position:absolute;inset:0;z-index:2}
+.alumni-map-graphic:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.18));
+  pointer-events:none;
+}
+.alumni-map-graphic .map-pin{
+  width:58px;
+  height:58px;
+  border-radius:20px;
+  background:rgba(255,255,255,.92);
+  border-color:rgba(255,255,255,.55);
+  box-shadow:0 18px 36px rgba(2,6,23,.28);
+}
+.ap-combined-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:22px;
+  padding:8px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.72);
+  border-radius:22px;
+  box-shadow:var(--shadow2);
+}
+.ap-combined-tabs button{
+  border:0;
+  background:transparent;
+  color:#475569;
+  border-radius:16px;
+  padding:12px 16px;
+  font-weight:900;
+  cursor:pointer;
+}
+.ap-combined-tabs button.active{
+  background:linear-gradient(135deg,#2563eb,#0891b2);
+  color:#fff;
+  box-shadow:0 12px 26px rgba(37,99,235,.18);
+}
+@media(max-width:760px){
+  .alumni-map-graphic{aspect-ratio: 1.45 / 1}
+  .alumni-map-graphic img{object-position:center top}
+}

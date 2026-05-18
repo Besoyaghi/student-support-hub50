@@ -1,5 +1,5 @@
 const { useEffect, useMemo, useState } = React;
-const ROUTES = ['home', 'research', 'publications', 'subjects', 'collaborations', 'alumni', 'assistant', 'ap-resources', 'ap-decider', 'reading-list', 'book', 'paper'];
+const ROUTES = ['home', 'research', 'publications', 'subjects', 'collaborations', 'alumni', 'assistant', 'ap', 'ap-resources', 'ap-decider', 'reading-list', 'book', 'paper'];
 const STORAGE = {
     readingList: 'ssh_reading_list_v3',
     auth: 'ssh_admin_auth_v3',
@@ -7,7 +7,9 @@ const STORAGE = {
 };
 function parseRoute() {
     const raw = (location.hash || '#/home').replace(/^#\/?/, '');
-    const [page = 'home', ...rest] = raw.split('/');
+    let [page = 'home', ...rest] = raw.split('/');
+    if (page === 'ap-resources' || page === 'ap-decider')
+        page = 'ap';
     return { page: ROUTES.includes(page) ? page : 'home', id: rest.length ? decodeURIComponent(rest.join('/')) : null };
 }
 function go(page, id) { location.hash = id ? `#/${page}/${encodeURIComponent(id)}` : `#/${page}`; }
@@ -292,8 +294,7 @@ function TopBar({ route, auth, onLogin, onLogout }) {
         ['collaborations', 'Collaborations'],
         ['alumni', 'Alumni Map'],
         ['assistant', 'AI Assistant'],
-        ['ap-resources', 'Advanced Placement Resources'],
-        ['ap-decider', 'AP Decider'],
+        ['ap', 'AP Planning'],
         ['reading-list', 'Reading List']
     ];
     const active = route.page;
@@ -303,7 +304,7 @@ function TopBar({ route, auth, onLogin, onLogout }) {
             React.createElement("span", null,
                 React.createElement("b", null, "Student Support Hub"),
                 React.createElement("small", null, "AMRC Academic Library"))),
-        React.createElement("nav", { className: "nav" }, nav.map(([id, label]) => React.createElement("button", { key: id, className: (active === id || (id === 'research' && ['paper', 'subjects'].includes(active)) || (id === 'publications' && active === 'book')) ? 'active' : '', onClick: () => go(id) }, label))));
+        React.createElement("nav", { className: "nav" }, nav.map(([id, label]) => React.createElement("button", { key: id, className: (active === id || (id === 'ap' && ['ap', 'ap-resources', 'ap-decider'].includes(active)) || (id === 'research' && ['paper', 'subjects'].includes(active)) || (id === 'publications' && active === 'book')) ? 'active' : '', onClick: () => go(id) }, label))));
 }
 function Badge({ children, tone = '' }) { return React.createElement("span", { className: `badge ${tone}` }, children); }
 function PageHeader({ eyebrow, title, subtitle, children }) { return React.createElement("section", { className: "page-hero" },
@@ -340,7 +341,7 @@ function Home({ data }) {
                     React.createElement("p", null, "Browse AMRC publications, open individual research papers, build a reading list, generate citations, compare AP courses, and create a smarter four-year AP plan."),
                     React.createElement("div", { className: "hero-actions" },
                         React.createElement("button", { className: "btn primary", onClick: () => go('research') }, "Explore Research"),
-                        React.createElement("button", { className: "btn dark", onClick: () => go('ap-decider') }, "Try AP Decider"))),
+                        React.createElement("button", { className: "btn dark", onClick: () => go('ap') }, "Plan APs"))),
                 React.createElement("aside", { className: "command-card" },
                     React.createElement("div", { className: "command-top" },
                         React.createElement("span", null),
@@ -357,8 +358,7 @@ function Home({ data }) {
             React.createElement(SectionHead, { kicker: "Platform modules", title: "A cleaner structure, not a crowded PDF dump", subtitle: "Each feature now has a proper place in the site architecture." }),
             React.createElement("div", { className: "module-grid" },
                 React.createElement(FeatureCard, { title: "AMRC Research Hub", desc: "Unified search, filters, subject collections, books, standalone papers, PDF tools, and academic layouts.", action: "Open library", page: "research" }),
-                React.createElement(FeatureCard, { title: "Advanced Placement Resources", desc: "AP course library by subject area, course fit cards, and a new comparison workspace.", action: "Browse APs", page: "ap-resources" }),
-                React.createElement(FeatureCard, { title: "AP Decider", desc: "A multi-factor algorithm that recommends APs and builds a four-year roadmap based on student profile.", action: "Build roadmap", page: "ap-decider" }),
+                React.createElement(FeatureCard, { title: "AP Planning", desc: "A combined AP hub with the course library, comparison workspace, and AP Decider roadmap in one place.", action: "Open AP hub", page: "ap" }),
                 React.createElement(FeatureCard, { title: "Reading List", desc: "Students can save research papers locally, continue later, and export their list.", action: "View saved papers", page: "reading-list" }),
                 React.createElement(FeatureCard, { title: "Alumni Destinations", desc: "A map-style view showing where AMSI students continued their studies by region and university destination.", action: "Open map", page: "alumni" }),
                 React.createElement(FeatureCard, { title: "Knowledge Assistant", desc: "A controlled helper for research discovery, AP planning, partner resources, and opportunities using only site data.", action: "Ask assistant", page: "assistant" }))),
@@ -743,10 +743,10 @@ function buildKnowledgeBase(data) {
             action: () => go('paper', paper.id) };
     });
     const apDocs = AP_COURSES.map(course => ({
-        id: `ap:${course.name}`, type: 'AP course', title: course.name, year: '', source: 'Advanced Placement Resources', url: '#/ap-resources',
+        id: `ap:${course.name}`, type: 'AP course', title: course.name, year: '', source: 'Advanced Placement Resources', url: '#/ap',
         text: `${course.name} ${course.area} ${course.summary} ${toText(course.interests)} ${toText(course.pathways)} difficulty ${course.difficulty} workload ${course.workload}`,
         summary: `${course.name}: ${course.summary} Difficulty ${course.difficulty}/5, workload ${course.workload}/5, usually suited for grades ${course.grades.join(', ')}.`,
-        action: () => go('ap-resources')
+        action: () => go('ap')
     }));
     const partnerDocs = partnerResources.map(resource => ({
         id: `partner:${resource.id}`, type: 'Partner resource', title: resource.title, year: resource.year, source: resource.partnerName || 'Partner', url: resource.url,
@@ -835,7 +835,7 @@ function summarizeAPAnswer(question) {
     const lines = plan.plan.map(y => `Grade ${y.grade}: ${y.courses.length ? y.courses.map(c => c.name).join(', ') : 'No APs recommended from these settings.'}`).join('\n');
     return {
         text: `Based only on the AP course data inside Student Support Hub, here is a suggested ${profile.pathway} AP direction. Workload risk: ${plan.risk}.\n\n${lines}\n\nBest first moves: ${courses.slice(0, 3).map(c => c.name).join(', ')}. Use the full AP Decider for a more precise plan with grade, GPA, stress tolerance, and completed APs.`,
-        sources: courses.slice(0, 5).map(c => ({ id: `ap:${c.name}`, title: c.name, type: 'AP course', source: 'Advanced Placement Resources', url: '#/ap-resources' }))
+        sources: courses.slice(0, 5).map(c => ({ id: `ap:${c.name}`, title: c.name, type: 'AP course', source: 'Advanced Placement Resources', url: '#/ap' }))
     };
 }
 function generateAssistantAnswer(question, data) {
@@ -1060,15 +1060,11 @@ function AlumniDestinations() {
                 alumniData.note && React.createElement("div", { className: "notice info" },
                     React.createElement("b", null, "Totals from the uploaded PDF"),
                     React.createElement("span", null, alumniData.note)),
-                React.createElement("div", { className: "alumni-map", "aria-label": "Stylized alumni destination map" },
-                    React.createElement("div", { className: "map-land land-americas" }),
-                    React.createElement("div", { className: "map-land land-europe" }),
-                    React.createElement("div", { className: "map-land land-africa" }),
-                    React.createElement("div", { className: "map-land land-asia" }),
-                    React.createElement("div", { className: "map-land land-australia" }),
-                    regions.map(region => React.createElement("button", { key: region.id, className: `map-pin ${active === region.id ? 'active' : ''}`, style: { top: region.top, left: region.left }, onClick: () => setActive(region.id), title: `${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}` },
+                React.createElement("div", { className: "alumni-map alumni-map-graphic", "aria-label": "AMSI Alumni Around the World map graphic" },
+                    React.createElement("img", { src: "assets/img/amsi-alumni-map.png", alt: "AMSI Alumni Around the World map graphic" }),
+                    React.createElement("div", { className: "alumni-map-overlay" }, regions.map(region => React.createElement("button", { key: region.id, className: `map-pin ${active === region.id ? 'active' : ''}`, style: { top: region.top, left: region.left }, onClick: () => setActive(region.id), title: `${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}` },
                         React.createElement("span", null, region.short),
-                        React.createElement("b", null, alumniRegionMetric(region, usesUniversityCounts))))),
+                        React.createElement("b", null, alumniRegionMetric(region, usesUniversityCounts)))))),
                 React.createElement("div", { className: "alumni-region-buttons" },
                     React.createElement("button", { className: active === 'all' ? 'active' : '', onClick: () => setActive('all') },
                         "All destinations ",
@@ -1093,38 +1089,54 @@ function AlumniDestinations() {
                         u.notes && React.createElement("small", null, u.notes)),
                     usesUniversityCounts ? React.createElement("strong", { className: "destination-dot" }, "\u2713") : React.createElement("strong", null, Number(u.alumni) || 0))) : React.createElement(Empty, { title: "No universities in this view yet.", text: "Once real alumni data is added, this panel will show the university names and alumni numbers for the selected region." })))));
 }
-function APResources() {
+function APPlanning() {
+    const [tab, setTab] = useState('resources');
+    return React.createElement("main", null,
+        React.createElement(PageHeader, { eyebrow: "AP Planning", title: "Advanced Placement hub", subtitle: "The AP course library and AP Decider are now combined into one cleaner planning workspace." },
+            React.createElement("div", { className: "hero-stats" },
+                React.createElement(Stat, { num: AP_COURSES.filter(c => !c.emerging).length, label: "AP courses" }),
+                React.createElement(Stat, { num: AP_AREAS.length, label: "Subject areas" }),
+                React.createElement(Stat, { num: PATHWAYS.length, label: "Pathways" }))),
+        React.createElement("section", { className: "container section" },
+            React.createElement("div", { className: "ap-combined-tabs", role: "tablist", "aria-label": "AP planning tools" },
+                React.createElement("button", { className: tab === 'resources' ? 'active' : '', onClick: () => setTab('resources') }, "Course library + comparison"),
+                React.createElement("button", { className: tab === 'decider' ? 'active' : '', onClick: () => setTab('decider') }, "AP Decider roadmap")),
+            tab === 'resources' ? React.createElement(APResources, { embedded: true }) : React.createElement(APDecider, { embedded: true })));
+}
+function APResources({ embedded = false } = {}) {
     const [area, setArea] = useState('All');
     const [compare, setCompare] = useState(['AP Biology', 'AP Chemistry', 'AP Statistics']);
     const visible = AP_COURSES.filter(c => area === 'All' || c.area === area);
     const chosen = compare.map(n => AP_COURSES.find(c => c.name === n)).filter(Boolean);
     const setSlot = (i, value) => setCompare(compare.map((x, idx) => idx === i ? value : x));
+    const content = React.createElement("div", { className: "ap-dashboard" },
+        React.createElement("div", { className: "panel pad" },
+            React.createElement(SectionHead, { kicker: "Course library", title: "AP subjects by area", subtitle: "Browse courses, compare workload, and understand fit before building a roadmap." }),
+            React.createElement("div", { className: "area-tabs" },
+                React.createElement("button", { className: area === 'All' ? 'active' : '', onClick: () => setArea('All') }, "All"),
+                AP_AREAS.map(a => React.createElement("button", { key: a, className: area === a ? 'active' : '', onClick: () => setArea(a) }, a))),
+            React.createElement("div", { className: "course-grid" }, visible.map(c => React.createElement(CourseCard, { key: c.name, course: c })))),
+        React.createElement("aside", { className: "panel pad sticky" },
+            React.createElement("h2", null, "AP comparison tool"),
+            React.createElement("p", { className: "muted" }, "Compare up to three courses side by side before building a plan."),
+            [0, 1, 2].map(i => React.createElement("select", { key: i, value: compare[i], onChange: e => setSlot(i, e.target.value) }, AP_COURSES.map(c => React.createElement("option", { key: c.name }, c.name)))),
+            React.createElement("div", { className: "compare-stack" }, chosen.map(c => React.createElement("div", { className: "compare-card", key: c.name },
+                React.createElement("b", null, c.name),
+                React.createElement("span", null, c.area),
+                React.createElement("meter", { min: "1", max: "5", value: c.difficulty }),
+                React.createElement("small", null,
+                    "Difficulty ",
+                    c.difficulty,
+                    "/5 \u00B7 Workload ",
+                    c.workload,
+                    "/5"),
+                React.createElement("p", null, c.summary)))),
+            React.createElement(RecommendedPartnerResources, { courses: chosen, compact: true })));
+    if (embedded)
+        return content;
     return React.createElement("main", null,
         React.createElement(PageHeader, { eyebrow: "Advanced Placement Resources", title: "Plan AP courses with clarity", subtitle: "Browse AP subjects, understand fit, compare workload, and connect choices to future academic pathways." }),
-        React.createElement("section", { className: "container section" },
-            React.createElement("div", { className: "ap-dashboard" },
-                React.createElement("div", { className: "panel pad" },
-                    React.createElement(SectionHead, { kicker: "Course library", title: "AP subjects by area", subtitle: "Course list aligns with College Board AP subject categories, with local planning ratings added for the hub.", actions: React.createElement("button", { className: "btn primary", onClick: () => go('ap-decider') }, "Open AP Decider") }),
-                    React.createElement("div", { className: "area-tabs" },
-                        React.createElement("button", { className: area === 'All' ? 'active' : '', onClick: () => setArea('All') }, "All"),
-                        AP_AREAS.map(a => React.createElement("button", { key: a, className: area === a ? 'active' : '', onClick: () => setArea(a) }, a))),
-                    React.createElement("div", { className: "course-grid" }, visible.map(c => React.createElement(CourseCard, { key: c.name, course: c })))),
-                React.createElement("aside", { className: "panel pad sticky" },
-                    React.createElement("h2", null, "AP comparison tool"),
-                    React.createElement("p", { className: "muted" }, "Compare up to three courses side by side before building a plan."),
-                    [0, 1, 2].map(i => React.createElement("select", { key: i, value: compare[i], onChange: e => setSlot(i, e.target.value) }, AP_COURSES.map(c => React.createElement("option", { key: c.name }, c.name)))),
-                    React.createElement("div", { className: "compare-stack" }, chosen.map(c => React.createElement("div", { className: "compare-card", key: c.name },
-                        React.createElement("b", null, c.name),
-                        React.createElement("span", null, c.area),
-                        React.createElement("meter", { min: "1", max: "5", value: c.difficulty }),
-                        React.createElement("small", null,
-                            "Difficulty ",
-                            c.difficulty,
-                            "/5 \u00B7 Workload ",
-                            c.workload,
-                            "/5"),
-                        React.createElement("p", null, c.summary)))),
-                    React.createElement(RecommendedPartnerResources, { courses: chosen, compact: true })))));
+        React.createElement("section", { className: "container section" }, content));
 }
 function CourseCard({ course }) { return React.createElement("article", { className: "course-card" },
     React.createElement("div", { className: "course-top" },
@@ -1215,74 +1227,77 @@ function generateAPPlan(profile) {
     const risk = avg >= 4.3 || total >= 12 ? 'High' : avg >= 3.6 || total >= 8 ? 'Moderate' : 'Controlled';
     return { plan, avoided, risk, total };
 }
-function APDecider() {
+function APDecider({ embedded = false } = {}) {
     const [profile, setProfile] = useState(DEFAULT_PROFILE);
     const [result, setResult] = useState(() => generateAPPlan(DEFAULT_PROFILE));
     const interests = uniq(AP_COURSES.flatMap(c => c.interests)).sort();
     const toggle = (field, value) => setProfile(p => (Object.assign(Object.assign({}, p), { [field]: p[field].includes(value) ? p[field].filter(x => x !== value) : [...p[field], value] })));
     const update = patch => setProfile(p => (Object.assign(Object.assign({}, p), patch)));
+    const content = React.createElement("div", { className: "ap-decider-grid" },
+        React.createElement("div", { className: "panel pad" },
+            React.createElement(SectionHead, { kicker: "Student profile", title: "Tell the Decider what kind of plan you need" }),
+            React.createElement("div", { className: "form-grid" },
+                React.createElement(Field, { label: "Current grade" },
+                    React.createElement("select", { value: profile.grade, onChange: e => update({ grade: e.target.value }) }, [9, 10, 11, 12].map(g => React.createElement("option", { key: g }, g)))),
+                React.createElement(Field, { label: "GPA range" },
+                    React.createElement("select", { value: profile.gpa, onChange: e => update({ gpa: e.target.value }) },
+                        React.createElement("option", null, "3.0-3.4"),
+                        React.createElement("option", null, "3.5-3.8"),
+                        React.createElement("option", null, "3.9-4.0+"))),
+                React.createElement(Field, { label: "Plan intensity" },
+                    React.createElement("select", { value: profile.goal, onChange: e => update({ goal: e.target.value }) },
+                        React.createElement("option", { value: "protected" }, "Protected / low stress"),
+                        React.createElement("option", { value: "balanced" }, "Balanced"),
+                        React.createElement("option", { value: "ambitious" }, "Ambitious"),
+                        React.createElement("option", { value: "elite" }, "Elite rigor"))),
+                React.createElement(Field, { label: "Pathway" },
+                    React.createElement("select", { value: profile.pathway, onChange: e => update({ pathway: e.target.value }) }, PATHWAYS.map(p => React.createElement("option", { key: p.id, value: p.id }, p.label)))),
+                React.createElement(Field, { label: "Stress tolerance" },
+                    React.createElement("input", { type: "range", min: "1", max: "5", value: profile.stress, onChange: e => update({ stress: e.target.value }) })),
+                React.createElement(Field, { label: "Weekly AP study hours" },
+                    React.createElement("input", { type: "range", min: "2", max: "14", value: profile.time, onChange: e => update({ time: e.target.value }) }),
+                    React.createElement("small", null,
+                        profile.time,
+                        " hours/week")),
+                React.createElement(Field, { label: "Math readiness" },
+                    React.createElement("input", { type: "range", min: "1", max: "5", value: profile.math, onChange: e => update({ math: e.target.value }) })),
+                React.createElement(Field, { label: "Writing readiness" },
+                    React.createElement("input", { type: "range", min: "1", max: "5", value: profile.writing, onChange: e => update({ writing: e.target.value }) }))),
+            React.createElement("h3", null, "Interests"),
+            React.createElement("div", { className: "choice-cloud" }, interests.map(i => React.createElement("button", { key: i, type: "button", className: profile.interests.includes(i) ? 'choice active' : 'choice', onClick: () => toggle('interests', i) }, i))),
+            React.createElement("h3", null, "Areas to protect"),
+            React.createElement("div", { className: "choice-cloud" }, ['math', 'writing', 'memorization', 'heavy reading', 'lab science'].map(i => React.createElement("button", { key: i, type: "button", className: profile.weaknesses.includes(i) ? 'choice active' : 'choice', onClick: () => toggle('weaknesses', i) }, i))),
+            React.createElement("h3", null, "Already completed/current APs"),
+            React.createElement("div", { className: "choice-cloud scroll" }, AP_COURSES.filter(c => !c.emerging).map(c => React.createElement("button", { key: c.name, type: "button", className: profile.completed.includes(c.name) ? 'choice active' : 'choice', onClick: () => toggle('completed', c.name) }, c.name.replace('AP ', '')))),
+            React.createElement("button", { className: "btn primary", onClick: () => setResult(generateAPPlan(profile)) }, "Generate updated plan")),
+        React.createElement("aside", { className: "panel pad sticky" },
+            React.createElement("h2", null, "Recommendation"),
+            React.createElement("div", { className: `risk ${result.risk.toLowerCase()}` },
+                result.risk,
+                " workload risk"),
+            React.createElement("p", { className: "muted" },
+                result.total,
+                " recommended APs across the remaining high school timeline."),
+            React.createElement("div", { className: "timeline" }, result.plan.map(y => React.createElement("div", { className: "year-plan", key: y.grade },
+                React.createElement("b", null,
+                    "Grade ",
+                    y.grade),
+                y.courses.length ? y.courses.map(c => React.createElement("div", { className: "mini-plan", key: c.name },
+                    React.createElement("span", null, c.name),
+                    React.createElement("small", null,
+                        c.area,
+                        " \u00B7 difficulty ",
+                        c.difficulty,
+                        "/5"))) : React.createElement("small", null, "No APs recommended from current settings.")))),
+            result.avoided.length > 0 && React.createElement(React.Fragment, null,
+                React.createElement("h3", null, "APs to avoid for now"),
+                React.createElement("ul", { className: "avoid-list" }, result.avoided.map(c => React.createElement("li", { key: c.name }, c.name)))),
+            React.createElement(RecommendedPartnerResources, { courses: result.plan.flatMap(y => y.courses), profile: profile })));
+    if (embedded)
+        return content;
     return React.createElement("main", null,
         React.createElement(PageHeader, { eyebrow: "AP Decider v2", title: "Build a smarter four-year AP roadmap", subtitle: "The algorithm balances grade level, pathway, strengths, weak points, workload, stress tolerance, and AP readiness." }),
-        React.createElement("section", { className: "container section ap-decider-grid" },
-            React.createElement("div", { className: "panel pad" },
-                React.createElement(SectionHead, { kicker: "Student profile", title: "Tell the Decider what kind of plan you need" }),
-                React.createElement("div", { className: "form-grid" },
-                    React.createElement(Field, { label: "Current grade" },
-                        React.createElement("select", { value: profile.grade, onChange: e => update({ grade: e.target.value }) }, [9, 10, 11, 12].map(g => React.createElement("option", { key: g }, g)))),
-                    React.createElement(Field, { label: "GPA range" },
-                        React.createElement("select", { value: profile.gpa, onChange: e => update({ gpa: e.target.value }) },
-                            React.createElement("option", null, "3.0-3.4"),
-                            React.createElement("option", null, "3.5-3.8"),
-                            React.createElement("option", null, "3.9-4.0+"))),
-                    React.createElement(Field, { label: "Plan intensity" },
-                        React.createElement("select", { value: profile.goal, onChange: e => update({ goal: e.target.value }) },
-                            React.createElement("option", { value: "protected" }, "Protected / low stress"),
-                            React.createElement("option", { value: "balanced" }, "Balanced"),
-                            React.createElement("option", { value: "ambitious" }, "Ambitious"),
-                            React.createElement("option", { value: "elite" }, "Elite rigor"))),
-                    React.createElement(Field, { label: "Pathway" },
-                        React.createElement("select", { value: profile.pathway, onChange: e => update({ pathway: e.target.value }) }, PATHWAYS.map(p => React.createElement("option", { key: p.id, value: p.id }, p.label)))),
-                    React.createElement(Field, { label: "Stress tolerance" },
-                        React.createElement("input", { type: "range", min: "1", max: "5", value: profile.stress, onChange: e => update({ stress: e.target.value }) })),
-                    React.createElement(Field, { label: "Weekly AP study hours" },
-                        React.createElement("input", { type: "range", min: "2", max: "14", value: profile.time, onChange: e => update({ time: e.target.value }) }),
-                        React.createElement("small", null,
-                            profile.time,
-                            " hours/week")),
-                    React.createElement(Field, { label: "Math readiness" },
-                        React.createElement("input", { type: "range", min: "1", max: "5", value: profile.math, onChange: e => update({ math: e.target.value }) })),
-                    React.createElement(Field, { label: "Writing readiness" },
-                        React.createElement("input", { type: "range", min: "1", max: "5", value: profile.writing, onChange: e => update({ writing: e.target.value }) }))),
-                React.createElement("h3", null, "Interests"),
-                React.createElement("div", { className: "choice-cloud" }, interests.map(i => React.createElement("button", { key: i, type: "button", className: profile.interests.includes(i) ? 'choice active' : 'choice', onClick: () => toggle('interests', i) }, i))),
-                React.createElement("h3", null, "Areas to protect"),
-                React.createElement("div", { className: "choice-cloud" }, ['math', 'writing', 'memorization', 'heavy reading', 'lab science'].map(i => React.createElement("button", { key: i, type: "button", className: profile.weaknesses.includes(i) ? 'choice active' : 'choice', onClick: () => toggle('weaknesses', i) }, i))),
-                React.createElement("h3", null, "Already completed/current APs"),
-                React.createElement("div", { className: "choice-cloud scroll" }, AP_COURSES.filter(c => !c.emerging).map(c => React.createElement("button", { key: c.name, type: "button", className: profile.completed.includes(c.name) ? 'choice active' : 'choice', onClick: () => toggle('completed', c.name) }, c.name.replace('AP ', '')))),
-                React.createElement("button", { className: "btn primary", onClick: () => setResult(generateAPPlan(profile)) }, "Generate updated plan")),
-            React.createElement("aside", { className: "panel pad sticky" },
-                React.createElement("h2", null, "Recommendation"),
-                React.createElement("div", { className: `risk ${result.risk.toLowerCase()}` },
-                    result.risk,
-                    " workload risk"),
-                React.createElement("p", { className: "muted" },
-                    result.total,
-                    " recommended APs across the remaining high school timeline."),
-                React.createElement("div", { className: "timeline" }, result.plan.map(y => React.createElement("div", { className: "year-plan", key: y.grade },
-                    React.createElement("b", null,
-                        "Grade ",
-                        y.grade),
-                    y.courses.length ? y.courses.map(c => React.createElement("div", { className: "mini-plan", key: c.name },
-                        React.createElement("span", null, c.name),
-                        React.createElement("small", null,
-                            c.area,
-                            " \u00B7 difficulty ",
-                            c.difficulty,
-                            "/5"))) : React.createElement("small", null, "No APs recommended from current settings.")))),
-                result.avoided.length > 0 && React.createElement(React.Fragment, null,
-                    React.createElement("h3", null, "APs to avoid for now"),
-                    React.createElement("ul", { className: "avoid-list" }, result.avoided.map(c => React.createElement("li", { key: c.name }, c.name)))),
-                React.createElement(RecommendedPartnerResources, { courses: result.plan.flatMap(y => y.courses), profile: profile }))));
+        React.createElement("section", { className: "container section" }, content));
 }
 function Field({ label, children }) { return React.createElement("label", { className: "field" },
     React.createElement("span", null, label),
@@ -1377,7 +1392,7 @@ function Footer() { return React.createElement("footer", { className: "footer" }
     React.createElement("div", { className: "container" },
         React.createElement("div", null,
             React.createElement("b", null, "Student Support Hub"),
-            React.createElement("span", null, "AMRC Research Hub \u00B7 AP Resources \u00B7 Collaborations \u00B7 Academic planning")),
+            React.createElement("span", null, "AMRC Research Hub \u00B7 AP Planning \u00B7 Alumni Map \u00B7 Collaborations")),
         React.createElement("div", null, "Academic research library \u00B7 Student publications \u00B7 Planning resources"))); }
 function App() {
     const route = useRoute();
@@ -1402,10 +1417,12 @@ function App() {
         page = React.createElement(BookView, { id: route.id, data: data });
     if (route.page === 'paper')
         page = React.createElement(PaperView, { id: route.id, data: data, reading: reading });
+    if (route.page === 'ap')
+        page = React.createElement(APPlanning, null);
     if (route.page === 'ap-resources')
-        page = React.createElement(APResources, null);
+        page = React.createElement(APPlanning, null);
     if (route.page === 'ap-decider')
-        page = React.createElement(APDecider, null);
+        page = React.createElement(APPlanning, null);
     if (route.page === 'reading-list')
         page = React.createElement(ReadingList, { data: data, reading: reading });
     return React.createElement(React.Fragment, null,

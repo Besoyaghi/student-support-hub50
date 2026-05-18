@@ -1,6 +1,6 @@
 const { useEffect, useMemo, useState } = React;
 
-const ROUTES = ['home','research','publications','subjects','collaborations','alumni','assistant','ap-resources','ap-decider','reading-list','book','paper'];
+const ROUTES = ['home','research','publications','subjects','collaborations','alumni','assistant','ap','ap-resources','ap-decider','reading-list','book','paper'];
 const STORAGE = {
   readingList: 'ssh_reading_list_v3',
   auth: 'ssh_admin_auth_v3',
@@ -9,7 +9,8 @@ const STORAGE = {
 
 function parseRoute(){
   const raw = (location.hash || '#/home').replace(/^#\/?/, '');
-  const [page='home', ...rest] = raw.split('/');
+  let [page='home', ...rest] = raw.split('/');
+  if(page === 'ap-resources' || page === 'ap-decider') page = 'ap';
   return { page: ROUTES.includes(page) ? page : 'home', id: rest.length ? decodeURIComponent(rest.join('/')) : null };
 }
 function go(page, id){ location.hash = id ? `#/${page}/${encodeURIComponent(id)}` : `#/${page}`; }
@@ -268,8 +269,7 @@ function TopBar({route, auth, onLogin, onLogout}){
     ['collaborations','Collaborations'],
     ['alumni','Alumni Map'],
     ['assistant','AI Assistant'],
-    ['ap-resources','Advanced Placement Resources'],
-    ['ap-decider','AP Decider'],
+    ['ap','AP Planning'],
     ['reading-list','Reading List']
   ];
 
@@ -285,7 +285,7 @@ function TopBar({route, auth, onLogin, onLogout}){
       {nav.map(([id,label]) =>
         <button
           key={id}
-          className={(active===id || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book')) ? 'active' : ''}
+          className={(active===id || (id==='ap' && ['ap','ap-resources','ap-decider'].includes(active)) || (id==='research' && ['paper','subjects'].includes(active)) || (id==='publications' && active==='book')) ? 'active' : ''}
           onClick={()=>go(id)}
         >
           {label}
@@ -317,7 +317,7 @@ function Home({data}){
           <p>Browse AMRC publications, open individual research papers, build a reading list, generate citations, compare AP courses, and create a smarter four-year AP plan.</p>
           <div className="hero-actions">
             <button className="btn primary" onClick={()=>go('research')}>Explore Research</button>
-            <button className="btn dark" onClick={()=>go('ap-decider')}>Try AP Decider</button>
+            <button className="btn dark" onClick={()=>go('ap')}>Plan APs</button>
           </div>
         </div>
         <aside className="command-card">
@@ -338,8 +338,7 @@ function Home({data}){
       <SectionHead kicker="Platform modules" title="A cleaner structure, not a crowded PDF dump" subtitle="Each feature now has a proper place in the site architecture." />
       <div className="module-grid">
         <FeatureCard title="AMRC Research Hub" desc="Unified search, filters, subject collections, books, standalone papers, PDF tools, and academic layouts." action="Open library" page="research" />
-        <FeatureCard title="Advanced Placement Resources" desc="AP course library by subject area, course fit cards, and a new comparison workspace." action="Browse APs" page="ap-resources" />
-        <FeatureCard title="AP Decider" desc="A multi-factor algorithm that recommends APs and builds a four-year roadmap based on student profile." action="Build roadmap" page="ap-decider" />
+        <FeatureCard title="AP Planning" desc="A combined AP hub with the course library, comparison workspace, and AP Decider roadmap in one place." action="Open AP hub" page="ap" />
         <FeatureCard title="Reading List" desc="Students can save research papers locally, continue later, and export their list." action="View saved papers" page="reading-list" />
         <FeatureCard title="Alumni Destinations" desc="A map-style view showing where AMSI students continued their studies by region and university destination." action="Open map" page="alumni" />
         <FeatureCard title="Knowledge Assistant" desc="A controlled helper for research discovery, AP planning, partner resources, and opportunities using only site data." action="Ask assistant" page="assistant" />
@@ -625,10 +624,10 @@ function buildKnowledgeBase(data){
     };
   });
   const apDocs = AP_COURSES.map(course=>({
-    id:`ap:${course.name}`, type:'AP course', title:course.name, year:'', source:'Advanced Placement Resources', url:'#/ap-resources',
+    id:`ap:${course.name}`, type:'AP course', title:course.name, year:'', source:'Advanced Placement Resources', url:'#/ap',
     text:`${course.name} ${course.area} ${course.summary} ${toText(course.interests)} ${toText(course.pathways)} difficulty ${course.difficulty} workload ${course.workload}`,
     summary:`${course.name}: ${course.summary} Difficulty ${course.difficulty}/5, workload ${course.workload}/5, usually suited for grades ${course.grades.join(', ')}.`,
-    action:()=>go('ap-resources')
+    action:()=>go('ap')
   }));
   const partnerDocs = partnerResources.map(resource=>({
     id:`partner:${resource.id}`, type:'Partner resource', title:resource.title, year:resource.year, source:resource.partnerName || 'Partner', url:resource.url,
@@ -698,7 +697,7 @@ function summarizeAPAnswer(question){
   const lines = plan.plan.map(y=>`Grade ${y.grade}: ${y.courses.length ? y.courses.map(c=>c.name).join(', ') : 'No APs recommended from these settings.'}`).join('\n');
   return {
     text:`Based only on the AP course data inside Student Support Hub, here is a suggested ${profile.pathway} AP direction. Workload risk: ${plan.risk}.\n\n${lines}\n\nBest first moves: ${courses.slice(0,3).map(c=>c.name).join(', ')}. Use the full AP Decider for a more precise plan with grade, GPA, stress tolerance, and completed APs.`,
-    sources:courses.slice(0,5).map(c=>({id:`ap:${c.name}`, title:c.name, type:'AP course', source:'Advanced Placement Resources', url:'#/ap-resources'}))
+    sources:courses.slice(0,5).map(c=>({id:`ap:${c.name}`, title:c.name, type:'AP course', source:'Advanced Placement Resources', url:'#/ap'}))
   };
 }
 function generateAssistantAnswer(question, data){
@@ -868,19 +867,17 @@ function AlumniDestinations(){
       <article className="panel pad alumni-map-card">
         <SectionHead kicker="Interactive map" title="Choose a region" subtitle="Press a map marker or region button to show the verified university destinations for that region." />
         {alumniData.note && <div className="notice info"><b>Totals from the uploaded PDF</b><span>{alumniData.note}</span></div>}
-        <div className="alumni-map" aria-label="Stylized alumni destination map">
-          <div className="map-land land-americas"></div>
-          <div className="map-land land-europe"></div>
-          <div className="map-land land-africa"></div>
-          <div className="map-land land-asia"></div>
-          <div className="map-land land-australia"></div>
-          {regions.map(region => <button
-            key={region.id}
-            className={`map-pin ${active === region.id ? 'active' : ''}`}
-            style={{top:region.top,left:region.left}}
-            onClick={()=>setActive(region.id)}
-            title={`${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}`}
-          ><span>{region.short}</span><b>{alumniRegionMetric(region, usesUniversityCounts)}</b></button>)}
+        <div className="alumni-map alumni-map-graphic" aria-label="AMSI Alumni Around the World map graphic">
+          <img src="assets/img/amsi-alumni-map.png" alt="AMSI Alumni Around the World map graphic" />
+          <div className="alumni-map-overlay">
+            {regions.map(region => <button
+              key={region.id}
+              className={`map-pin ${active === region.id ? 'active' : ''}`}
+              style={{top:region.top,left:region.left}}
+              onClick={()=>setActive(region.id)}
+              title={`${region.label}: ${alumniRegionMetric(region, usesUniversityCounts)} ${usesUniversityCounts ? 'university destinations' : 'alumni'}`}
+            ><span>{region.short}</span><b>{alumniRegionMetric(region, usesUniversityCounts)}</b></button>)}
+          </div>
         </div>
         <div className="alumni-region-buttons">
           <button className={active==='all'?'active':''} onClick={()=>setActive('all')}>All destinations <b>{totalMetric}</b></button>
@@ -908,25 +905,43 @@ function AlumniDestinations(){
   </main>;
 }
 
-function APResources(){
+
+function APPlanning(){
+  const [tab,setTab] = useState('resources');
+  return <main>
+    <PageHeader eyebrow="AP Planning" title="Advanced Placement hub" subtitle="The AP course library and AP Decider are now combined into one cleaner planning workspace.">
+      <div className="hero-stats"><Stat num={AP_COURSES.filter(c=>!c.emerging).length} label="AP courses"/><Stat num={AP_AREAS.length} label="Subject areas"/><Stat num={PATHWAYS.length} label="Pathways"/></div>
+    </PageHeader>
+    <section className="container section">
+      <div className="ap-combined-tabs" role="tablist" aria-label="AP planning tools">
+        <button className={tab==='resources'?'active':''} onClick={()=>setTab('resources')}>Course library + comparison</button>
+        <button className={tab==='decider'?'active':''} onClick={()=>setTab('decider')}>AP Decider roadmap</button>
+      </div>
+      {tab==='resources' ? <APResources embedded={true}/> : <APDecider embedded={true}/>}
+    </section>
+  </main>;
+}
+
+function APResources({embedded=false}={}){
   const [area,setArea] = useState('All');
   const [compare,setCompare] = useState(['AP Biology','AP Chemistry','AP Statistics']);
   const visible = AP_COURSES.filter(c=>area==='All' || c.area===area);
   const chosen = compare.map(n=>AP_COURSES.find(c=>c.name===n)).filter(Boolean);
   const setSlot = (i,value)=>setCompare(compare.map((x,idx)=>idx===i?value:x));
+  const content = <div className="ap-dashboard">
+    <div className="panel pad"><SectionHead kicker="Course library" title="AP subjects by area" subtitle="Browse courses, compare workload, and understand fit before building a roadmap." />
+      <div className="area-tabs"><button className={area==='All'?'active':''} onClick={()=>setArea('All')}>All</button>{AP_AREAS.map(a=><button key={a} className={area===a?'active':''} onClick={()=>setArea(a)}>{a}</button>)}</div>
+      <div className="course-grid">{visible.map(c=><CourseCard key={c.name} course={c}/>)}</div>
+    </div>
+    <aside className="panel pad sticky"><h2>AP comparison tool</h2><p className="muted">Compare up to three courses side by side before building a plan.</p>{[0,1,2].map(i=><select key={i} value={compare[i]} onChange={e=>setSlot(i,e.target.value)}>{AP_COURSES.map(c=><option key={c.name}>{c.name}</option>)}</select>)}<div className="compare-stack">{chosen.map(c=><div className="compare-card" key={c.name}><b>{c.name}</b><span>{c.area}</span><meter min="1" max="5" value={c.difficulty}></meter><small>Difficulty {c.difficulty}/5 · Workload {c.workload}/5</small><p>{c.summary}</p></div>)}</div><RecommendedPartnerResources courses={chosen} compact={true}/></aside>
+  </div>;
+  if(embedded) return content;
   return <main>
     <PageHeader eyebrow="Advanced Placement Resources" title="Plan AP courses with clarity" subtitle="Browse AP subjects, understand fit, compare workload, and connect choices to future academic pathways." />
-    <section className="container section">
-      <div className="ap-dashboard">
-        <div className="panel pad"><SectionHead kicker="Course library" title="AP subjects by area" subtitle="Course list aligns with College Board AP subject categories, with local planning ratings added for the hub." actions={<button className="btn primary" onClick={()=>go('ap-decider')}>Open AP Decider</button>} />
-          <div className="area-tabs"><button className={area==='All'?'active':''} onClick={()=>setArea('All')}>All</button>{AP_AREAS.map(a=><button key={a} className={area===a?'active':''} onClick={()=>setArea(a)}>{a}</button>)}</div>
-          <div className="course-grid">{visible.map(c=><CourseCard key={c.name} course={c}/>)}</div>
-        </div>
-        <aside className="panel pad sticky"><h2>AP comparison tool</h2><p className="muted">Compare up to three courses side by side before building a plan.</p>{[0,1,2].map(i=><select key={i} value={compare[i]} onChange={e=>setSlot(i,e.target.value)}>{AP_COURSES.map(c=><option key={c.name}>{c.name}</option>)}</select>)}<div className="compare-stack">{chosen.map(c=><div className="compare-card" key={c.name}><b>{c.name}</b><span>{c.area}</span><meter min="1" max="5" value={c.difficulty}></meter><small>Difficulty {c.difficulty}/5 · Workload {c.workload}/5</small><p>{c.summary}</p></div>)}</div><RecommendedPartnerResources courses={chosen} compact={true}/></aside>
-      </div>
-    </section>
+    <section className="container section">{content}</section>
   </main>;
 }
+
 function CourseCard({course}){ return <article className="course-card"><div className="course-top"><Badge>{course.area}</Badge>{course.emerging && <Badge tone="gold">Emerging</Badge>}</div><h3>{course.name}</h3><p>{course.summary}</p><MetaLine items={[`Difficulty ${course.difficulty}/5`, `Workload ${course.workload}/5`, `Grades ${course.grades.join(', ')}`]} /><div className="skill-bars"><Skill label="Writing" value={course.writing}/><Skill label="Math" value={course.math}/><Skill label="Memory" value={course.memorization}/></div></article>; }
 function Skill({label,value}){ return <div className="skill"><span>{label}</span><i><b style={{width:`${value*20}%`}}></b></i></div>; }
 
@@ -982,36 +997,40 @@ function generateAPPlan(profile){
   const risk = avg>=4.3 || total>=12 ? 'High' : avg>=3.6 || total>=8 ? 'Moderate' : 'Controlled';
   return {plan, avoided, risk, total};
 }
-function APDecider(){
+
+function APDecider({embedded=false}={}){
   const [profile,setProfile] = useState(DEFAULT_PROFILE);
   const [result,setResult] = useState(()=>generateAPPlan(DEFAULT_PROFILE));
   const interests = uniq(AP_COURSES.flatMap(c=>c.interests)).sort();
   const toggle = (field,value)=>setProfile(p=>({...p,[field]:p[field].includes(value)?p[field].filter(x=>x!==value):[...p[field],value]}));
   const update = patch=>setProfile(p=>({...p,...patch}));
+  const content = <div className="ap-decider-grid">
+    <div className="panel pad">
+      <SectionHead kicker="Student profile" title="Tell the Decider what kind of plan you need" />
+      <div className="form-grid">
+        <Field label="Current grade"><select value={profile.grade} onChange={e=>update({grade:e.target.value})}>{[9,10,11,12].map(g=><option key={g}>{g}</option>)}</select></Field>
+        <Field label="GPA range"><select value={profile.gpa} onChange={e=>update({gpa:e.target.value})}><option>3.0-3.4</option><option>3.5-3.8</option><option>3.9-4.0+</option></select></Field>
+        <Field label="Plan intensity"><select value={profile.goal} onChange={e=>update({goal:e.target.value})}><option value="protected">Protected / low stress</option><option value="balanced">Balanced</option><option value="ambitious">Ambitious</option><option value="elite">Elite rigor</option></select></Field>
+        <Field label="Pathway"><select value={profile.pathway} onChange={e=>update({pathway:e.target.value})}>{PATHWAYS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></Field>
+        <Field label="Stress tolerance"><input type="range" min="1" max="5" value={profile.stress} onChange={e=>update({stress:e.target.value})}/></Field>
+        <Field label="Weekly AP study hours"><input type="range" min="2" max="14" value={profile.time} onChange={e=>update({time:e.target.value})}/><small>{profile.time} hours/week</small></Field>
+        <Field label="Math readiness"><input type="range" min="1" max="5" value={profile.math} onChange={e=>update({math:e.target.value})}/></Field>
+        <Field label="Writing readiness"><input type="range" min="1" max="5" value={profile.writing} onChange={e=>update({writing:e.target.value})}/></Field>
+      </div>
+      <h3>Interests</h3><div className="choice-cloud">{interests.map(i=><button key={i} type="button" className={profile.interests.includes(i)?'choice active':'choice'} onClick={()=>toggle('interests',i)}>{i}</button>)}</div>
+      <h3>Areas to protect</h3><div className="choice-cloud">{['math','writing','memorization','heavy reading','lab science'].map(i=><button key={i} type="button" className={profile.weaknesses.includes(i)?'choice active':'choice'} onClick={()=>toggle('weaknesses',i)}>{i}</button>)}</div>
+      <h3>Already completed/current APs</h3><div className="choice-cloud scroll">{AP_COURSES.filter(c=>!c.emerging).map(c=><button key={c.name} type="button" className={profile.completed.includes(c.name)?'choice active':'choice'} onClick={()=>toggle('completed',c.name)}>{c.name.replace('AP ','')}</button>)}</div>
+      <button className="btn primary" onClick={()=>setResult(generateAPPlan(profile))}>Generate updated plan</button>
+    </div>
+    <aside className="panel pad sticky"><h2>Recommendation</h2><div className={`risk ${result.risk.toLowerCase()}`}>{result.risk} workload risk</div><p className="muted">{result.total} recommended APs across the remaining high school timeline.</p><div className="timeline">{result.plan.map(y=><div className="year-plan" key={y.grade}><b>Grade {y.grade}</b>{y.courses.length?y.courses.map(c=><div className="mini-plan" key={c.name}><span>{c.name}</span><small>{c.area} · difficulty {c.difficulty}/5</small></div>):<small>No APs recommended from current settings.</small>}</div>)}</div>{result.avoided.length>0 && <><h3>APs to avoid for now</h3><ul className="avoid-list">{result.avoided.map(c=><li key={c.name}>{c.name}</li>)}</ul></>}<RecommendedPartnerResources courses={result.plan.flatMap(y=>y.courses)} profile={profile}/></aside>
+  </div>;
+  if(embedded) return content;
   return <main>
     <PageHeader eyebrow="AP Decider v2" title="Build a smarter four-year AP roadmap" subtitle="The algorithm balances grade level, pathway, strengths, weak points, workload, stress tolerance, and AP readiness." />
-    <section className="container section ap-decider-grid">
-      <div className="panel pad">
-        <SectionHead kicker="Student profile" title="Tell the Decider what kind of plan you need" />
-        <div className="form-grid">
-          <Field label="Current grade"><select value={profile.grade} onChange={e=>update({grade:e.target.value})}>{[9,10,11,12].map(g=><option key={g}>{g}</option>)}</select></Field>
-          <Field label="GPA range"><select value={profile.gpa} onChange={e=>update({gpa:e.target.value})}><option>3.0-3.4</option><option>3.5-3.8</option><option>3.9-4.0+</option></select></Field>
-          <Field label="Plan intensity"><select value={profile.goal} onChange={e=>update({goal:e.target.value})}><option value="protected">Protected / low stress</option><option value="balanced">Balanced</option><option value="ambitious">Ambitious</option><option value="elite">Elite rigor</option></select></Field>
-          <Field label="Pathway"><select value={profile.pathway} onChange={e=>update({pathway:e.target.value})}>{PATHWAYS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></Field>
-          <Field label="Stress tolerance"><input type="range" min="1" max="5" value={profile.stress} onChange={e=>update({stress:e.target.value})}/></Field>
-          <Field label="Weekly AP study hours"><input type="range" min="2" max="14" value={profile.time} onChange={e=>update({time:e.target.value})}/><small>{profile.time} hours/week</small></Field>
-          <Field label="Math readiness"><input type="range" min="1" max="5" value={profile.math} onChange={e=>update({math:e.target.value})}/></Field>
-          <Field label="Writing readiness"><input type="range" min="1" max="5" value={profile.writing} onChange={e=>update({writing:e.target.value})}/></Field>
-        </div>
-        <h3>Interests</h3><div className="choice-cloud">{interests.map(i=><button key={i} type="button" className={profile.interests.includes(i)?'choice active':'choice'} onClick={()=>toggle('interests',i)}>{i}</button>)}</div>
-        <h3>Areas to protect</h3><div className="choice-cloud">{['math','writing','memorization','heavy reading','lab science'].map(i=><button key={i} type="button" className={profile.weaknesses.includes(i)?'choice active':'choice'} onClick={()=>toggle('weaknesses',i)}>{i}</button>)}</div>
-        <h3>Already completed/current APs</h3><div className="choice-cloud scroll">{AP_COURSES.filter(c=>!c.emerging).map(c=><button key={c.name} type="button" className={profile.completed.includes(c.name)?'choice active':'choice'} onClick={()=>toggle('completed',c.name)}>{c.name.replace('AP ','')}</button>)}</div>
-        <button className="btn primary" onClick={()=>setResult(generateAPPlan(profile))}>Generate updated plan</button>
-      </div>
-      <aside className="panel pad sticky"><h2>Recommendation</h2><div className={`risk ${result.risk.toLowerCase()}`}>{result.risk} workload risk</div><p className="muted">{result.total} recommended APs across the remaining high school timeline.</p><div className="timeline">{result.plan.map(y=><div className="year-plan" key={y.grade}><b>Grade {y.grade}</b>{y.courses.length?y.courses.map(c=><div className="mini-plan" key={c.name}><span>{c.name}</span><small>{c.area} · difficulty {c.difficulty}/5</small></div>):<small>No APs recommended from current settings.</small>}</div>)}</div>{result.avoided.length>0 && <><h3>APs to avoid for now</h3><ul className="avoid-list">{result.avoided.map(c=><li key={c.name}>{c.name}</li>)}</ul></>}<RecommendedPartnerResources courses={result.plan.flatMap(y=>y.courses)} profile={profile}/></aside>
-    </section>
+    <section className="container section">{content}</section>
   </main>;
 }
+
 function Field({label,children}){ return <label className="field"><span>{label}</span>{children}</label>; }
 
 function Admin({data,auth,onLogin}){
@@ -1031,7 +1050,7 @@ function LoginModal({onClose,onSuccess}){
   return <div className="modal-back"><form className="modal" onSubmit={submit}><h2>Admin sign in</h2><Field label="Username"><input value={name} onChange={e=>setName(e.target.value)}/></Field><Field label="Password"><input type="password" value={password} onChange={e=>setPassword(e.target.value)}/></Field>{err&&<p className="error">{err}</p>}<div className="toolbar"><button className="btn primary">Sign in</button><button type="button" className="btn ghost" onClick={onClose}>Cancel</button></div></form></div>;
 }
 function NotFound(){ return <main className="container section"><Empty title="Page not found." text="The requested record does not exist in this release." /></main>; }
-function Footer(){ return <footer className="footer"><div className="container"><div><b>Student Support Hub</b><span>AMRC Research Hub · AP Resources · Collaborations · Academic planning</span></div><div>Academic research library · Student publications · Planning resources</div></div></footer>; }
+function Footer(){ return <footer className="footer"><div className="container"><div><b>Student Support Hub</b><span>AMRC Research Hub · AP Planning · Alumni Map · Collaborations</span></div><div>Academic research library · Student publications · Planning resources</div></div></footer>; }
 
 function App(){
   const route = useRoute();
@@ -1048,8 +1067,9 @@ function App(){
   if(route.page==='assistant') page=<KnowledgeAssistant data={data} reading={reading}/>;
   if(route.page==='book') page=<BookView id={route.id} data={data}/>;
   if(route.page==='paper') page=<PaperView id={route.id} data={data} reading={reading}/>;
-  if(route.page==='ap-resources') page=<APResources/>;
-  if(route.page==='ap-decider') page=<APDecider/>;
+  if(route.page==='ap') page=<APPlanning/>;
+  if(route.page==='ap-resources') page=<APPlanning/>;
+  if(route.page==='ap-decider') page=<APPlanning/>;
   if(route.page==='reading-list') page=<ReadingList data={data} reading={reading}/>;
 
   return <><TopBar route={route}/>{page || <NotFound/>}<Footer/></>;
