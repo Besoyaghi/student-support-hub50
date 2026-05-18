@@ -228,7 +228,6 @@ function TopBar({route, auth, onLogin, onLogout}){
     ['ap-resources','Advanced Placement Resources'],
     ['ap-decider','AP Decider'],
     ['reading-list','Reading List'],
-    ['admin','Admin']
   ];
 
   const active = route.page;
