@@ -1051,6 +1051,193 @@ function LoginModal({onClose,onSuccess}){
 }
 function NotFound(){ return <main className="container section"><Empty title="Page not found." text="The requested record does not exist in this release." /></main>; }
 function Footer(){ return <footer className="footer"><div className="container"><div><b>Student Support Hub</b><span>AMRC Research Hub · AP Planning · Alumni Map · Collaborations</span></div><div>Academic research library · Student publications · Planning resources</div></div></footer>; }
+// ═══════════════════════════════════════════════════════════════════════════
+// LEGACY & IMPACT COMPONENT — paste this into app.jsx
+// Place alongside your other page components (ResearchPage, PublicationsPage, etc.)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function LegacyPage() {
+  const data = window.LEGACY_DATA || {};
+  const timeline = data.timeline || [];
+  const contributors = data.contributors || [];
+  const stats = data.stats || {};
+  const transparency = data.transparency || {};
+
+  const hasTimeline = timeline.length > 0;
+  const hasContributors = contributors.length > 0;
+  const hasStats = Object.values(stats).some((v) => v !== null);
+
+  // Sort contributors by a composite score: papers * 2 + years + publications * 3
+  const ranked = [...contributors].sort((a, b) => {
+    const scoreA = (a.papers || 0) * 2 + (a.years || 0) + (a.publications || 0) * 3;
+    const scoreB = (b.papers || 0) * 2 + (b.years || 0) + (b.publications || 0) * 3;
+    return scoreB - scoreA;
+  });
+
+  return (
+    <div className="legacy-page page-section">
+
+      {/* ── Page Header ─────────────────────────────────────────────── */}
+      <div className="legacy-header">
+        <h1 className="legacy-title">Legacy &amp; Impact</h1>
+        <p className="legacy-subtitle">
+          A living record of AMRC's history, its contributors, and the research that defines our school's academic identity.
+        </p>
+      </div>
+
+      {/* ── Summary Stats ────────────────────────────────────────────── */}
+      <section className="legacy-section">
+        <h2 className="legacy-section-title">By the Numbers</h2>
+        {hasStats ? (
+          <div className="legacy-stats-grid">
+            {stats.yearsActive !== null && (
+              <div className="legacy-stat-card">
+                <span className="legacy-stat-value">{stats.yearsActive}</span>
+                <span className="legacy-stat-label">Years Active</span>
+              </div>
+            )}
+            {stats.totalResearchers !== null && (
+              <div className="legacy-stat-card">
+                <span className="legacy-stat-value">{stats.totalResearchers}</span>
+                <span className="legacy-stat-label">Researchers</span>
+              </div>
+            )}
+            {stats.totalPapers !== null && (
+              <div className="legacy-stat-card">
+                <span className="legacy-stat-value">{stats.totalPapers}</span>
+                <span className="legacy-stat-label">Research Papers</span>
+              </div>
+            )}
+            {stats.totalPublications !== null && (
+              <div className="legacy-stat-card">
+                <span className="legacy-stat-value">{stats.totalPublications}</span>
+                <span className="legacy-stat-label">Publications</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="legacy-empty-state">
+            <div className="legacy-empty-icon">📊</div>
+            <p className="legacy-empty-title">Statistics coming soon</p>
+            <p className="legacy-empty-desc">
+              Verified totals for researchers, papers, and publications will appear here once confirmed by the AMRC team.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── AMRC Timeline ────────────────────────────────────────────── */}
+      <section className="legacy-section">
+        <h2 className="legacy-section-title">AMRC Timeline</h2>
+        {hasTimeline ? (
+          <div className="legacy-timeline">
+            {timeline.map((event, i) => (
+              <div className="legacy-timeline-item" key={i}>
+                <div className="legacy-timeline-year">{event.year}</div>
+                <div className="legacy-timeline-connector">
+                  <div className="legacy-timeline-dot" />
+                  {i < timeline.length - 1 && <div className="legacy-timeline-line" />}
+                </div>
+                <div className="legacy-timeline-content">
+                  <h3 className="legacy-timeline-event-title">{event.title}</h3>
+                  {event.description && (
+                    <p className="legacy-timeline-desc">{event.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="legacy-empty-state">
+            <div className="legacy-empty-icon">🗓️</div>
+            <p className="legacy-empty-title">Timeline data coming soon</p>
+            <p className="legacy-empty-desc">
+              Canon events and milestones in AMRC's history will be added here after verification. If you have key dates or events to contribute, please contact the AMRC team.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── Contributor Rankings ─────────────────────────────────────── */}
+      <section className="legacy-section">
+        <h2 className="legacy-section-title">Contributor Recognition</h2>
+        <p className="legacy-section-desc">
+          Rankings are calculated from verified data: research papers contributed, years in AMRC, publications included, and leadership roles held.
+        </p>
+        {hasContributors ? (
+          <div className="legacy-contributors">
+            {ranked.map((person, i) => {
+              const score =
+                (person.papers || 0) * 2 +
+                (person.years || 0) +
+                (person.publications || 0) * 3;
+              return (
+                <div className={`legacy-contributor-card ${i < 3 ? "top-three" : ""}`} key={i}>
+                  <div className="legacy-rank-badge">#{i + 1}</div>
+                  <div className="legacy-contributor-info">
+                    <span className="legacy-contributor-name">{person.name}</span>
+                    {person.leadership && (
+                      <span className="legacy-leadership-badge">Leadership</span>
+                    )}
+                    {person.roles && person.roles.length > 0 && (
+                      <span className="legacy-roles">
+                        {person.roles.join(" · ")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="legacy-contributor-stats">
+                    <span className="legacy-contrib-stat">
+                      <strong>{person.papers || 0}</strong> papers
+                    </span>
+                    <span className="legacy-contrib-stat">
+                      <strong>{person.years || 0}</strong> yrs
+                    </span>
+                    <span className="legacy-contrib-stat">
+                      <strong>{person.publications || 0}</strong> pubs
+                    </span>
+                  </div>
+                  <div className="legacy-score-bar-wrap">
+                    <div
+                      className="legacy-score-bar"
+                      style={{
+                        width: `${Math.min(100, (score / 30) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="legacy-empty-state">
+            <div className="legacy-empty-icon">🏅</div>
+            <p className="legacy-empty-title">Contributor data will appear after verification</p>
+            <p className="legacy-empty-desc">
+              Once contributor names, years of service, and paper counts are confirmed by the AMRC team, rankings will be calculated and displayed here automatically.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── Data Transparency Notice ─────────────────────────────────── */}
+      <section className="legacy-transparency-notice">
+        <div className="legacy-transparency-icon">🔍</div>
+        <div>
+          <p className="legacy-transparency-text">
+            {transparency.message ||
+              "All data on this page is sourced from verified AMRC records only. No estimates or approximations are used."}
+          </p>
+          {transparency.lastUpdated && (
+            <p className="legacy-transparency-updated">
+              Last updated: {transparency.lastUpdated}
+            </p>
+          )}
+        </div>
+      </section>
+
+    </div>
+  );
+}
 
 function App(){
   const route = useRoute();
@@ -1071,7 +1258,7 @@ function App(){
   if(route.page==='ap-resources') page=<APPlanning/>;
   if(route.page==='ap-decider') page=<APPlanning/>;
   if(route.page==='reading-list') page=<ReadingList data={data} reading={reading}/>;
-
+if(route.page==='legacy') page=<LegacyPage/>;
   return <><TopBar route={route}/>{page || <NotFound/>}<Footer/></>;
 }
 
