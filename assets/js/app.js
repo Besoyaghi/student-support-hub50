@@ -1388,6 +1388,55 @@ function LoginModal({ onClose, onSuccess }) {
                 React.createElement("button", { className: "btn primary" }, "Sign in"),
                 React.createElement("button", { type: "button", className: "btn ghost", onClick: onClose }, "Cancel"))));
 }
+function LegacyPage() {
+  var data = window.LEGACY_DATA || {};
+  var timeline = data.timeline || [];
+  var contributors = data.contributors || [];
+  var stats = data.stats || {};
+  var transparency = data.transparency || {};
+  var hasTimeline = timeline.length > 0;
+  var hasContributors = contributors.length > 0;
+  var hasStats = Object.values(stats).some(function(v) { return v !== null; });
+  var ranked = contributors.slice().sort(function(a, b) {
+    var scoreA = (a.papers || 0) * 2 + (a.years || 0) + (a.publications || 0) * 3;
+    var scoreB = (b.papers || 0) * 2 + (b.years || 0) + (b.publications || 0) * 3;
+    return scoreB - scoreA;
+  });
+  var e = React.createElement;
+  function EmptyState(icon, title, desc) {
+    return e('div', { className: 'legacy-empty-state' },
+      e('div', { className: 'legacy-empty-icon' }, icon),
+      e('p', { className: 'legacy-empty-title' }, title),
+      e('p', { className: 'legacy-empty-desc' }, desc)
+    );
+  }
+  return e('div', { className: 'legacy-page page-section' },
+    e('div', { className: 'legacy-header' },
+      e('h1', { className: 'legacy-title' }, 'Legacy & Impact'),
+      e('p', { className: 'legacy-subtitle' }, 'A living record of AMRC\'s history, its contributors, and the research that defines our school\'s academic identity.')
+    ),
+    e('section', { className: 'legacy-section' },
+      e('h2', { className: 'legacy-section-title' }, 'By the Numbers'),
+      hasStats ? e('div', { className: 'legacy-stats-grid' }) : EmptyState('📊', 'Statistics coming soon', 'Verified totals for researchers, papers, and publications will appear here once confirmed by the AMRC team.')
+    ),
+    e('section', { className: 'legacy-section' },
+      e('h2', { className: 'legacy-section-title' }, 'AMRC Timeline'),
+      hasTimeline ? e('div', { className: 'legacy-timeline' }) : EmptyState('🗓️', 'Timeline data coming soon', 'Canon events and milestones in AMRC\'s history will be added here after verification.')
+    ),
+    e('section', { className: 'legacy-section' },
+      e('h2', { className: 'legacy-section-title' }, 'Contributor Recognition'),
+      e('p', { className: 'legacy-section-desc' }, 'Rankings are calculated from verified data: research papers contributed, years in AMRC, publications included, and leadership roles held.'),
+      hasContributors ? e('div', { className: 'legacy-contributors' }) : EmptyState('🏅', 'Contributor data will appear after verification', 'Once contributor names, years of service, and paper counts are confirmed by the AMRC team, rankings will be calculated and displayed here automatically.')
+    ),
+    e('section', { className: 'legacy-transparency-notice' },
+      e('div', { className: 'legacy-transparency-icon' }, '🔍'),
+      e('div', null,
+        e('p', { className: 'legacy-transparency-text' }, transparency.message || 'All data on this page is sourced from verified AMRC records only. No estimates or approximations are used.'),
+        transparency.lastUpdated ? e('p', { className: 'legacy-transparency-updated' }, 'Last updated: ' + transparency.lastUpdated) : null
+      )
+    )
+  );
+}
 function NotFound() { return React.createElement("main", { className: "container section" },
     React.createElement(Empty, { title: "Page not found.", text: "The requested record does not exist in this release." })); }
 function Footer() { return React.createElement("footer", { className: "footer" },
