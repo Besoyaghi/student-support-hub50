@@ -1,6 +1,6 @@
 const { useEffect, useMemo, useState } = React;
 
-const ROUTES = ['home','research','publications','subjects','collaborations','alumni','assistant','ap','ap-resources','ap-decider','reading-list','book','paper'];
+const ROUTES = ['home','research','publications','subjects','collaborations','alumni','assistant','ap','ap-resources','ap-decider','reading-list','book','paper','legacy'];
 const STORAGE = {
   readingList: 'ssh_reading_list_v3',
   auth: 'ssh_admin_auth_v3',
