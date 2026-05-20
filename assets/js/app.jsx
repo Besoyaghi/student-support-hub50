@@ -270,7 +270,8 @@ function TopBar({route, auth, onLogin, onLogout}){
     ['alumni','Alumni Map'],
     ['assistant','AI Assistant'],
     ['ap','AP Planning'],
-    ['reading-list','Reading List']
+    ['reading-list','Reading List'],
+    ['legacy','Legacy & Impact']
   ];
 
   const active = route.page;
