@@ -1427,6 +1427,8 @@ function App() {
         page = React.createElement(APPlanning, null);
     if (route.page === 'reading-list')
         page = React.createElement(ReadingList, { data: data, reading: reading });
+    if (route.page === 'legacy')
+    page = React.createElement(LegacyPage, null);
     return React.createElement(React.Fragment, null,
         React.createElement(TopBar, { route: route }),
         page || React.createElement(NotFound, null),
