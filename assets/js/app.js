@@ -296,6 +296,8 @@ function TopBar({ route, auth, onLogin, onLogout }) {
         ['assistant', 'AI Assistant'],
         ['ap', 'AP Planning'],
         ['reading-list', 'Reading List']
+        ['legacy','Legacy & Impact']
+
     ];
     const active = route.page;
     return React.createElement("header", { className: "topbar" },
